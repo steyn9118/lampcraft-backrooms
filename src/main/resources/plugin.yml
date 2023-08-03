@@ -1,0 +1,12 @@
+name: Backrooms
+version: '${project.version}'
+main: lps.backrooms.Backrooms
+api-version: 1.16
+authors: [ steyn91 ]
+commands:
+  br:
+    description: backrooms goes brrrrr
+  party:
+    description: invite friends
+  bradmin:
+    description: backrooms goes brrrrr, but with perms
