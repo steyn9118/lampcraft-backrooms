@@ -28,7 +28,7 @@ public class playerJoinListener implements Listener {
         p.getInventory().clear();
 
 
-        // PARTY CHECK
+        // Проверка на наличие пати и выход из неё при наличии
         if (!p.getMetadata("br_party").get(0).asString().equalsIgnoreCase("null")){
             Party LeaveParty = null;
             for (Party party : Backrooms.getPlugin().getParties()){
@@ -39,33 +39,29 @@ public class playerJoinListener implements Listener {
             LeaveParty.leave(p);
         }
 
-        // ARENA CHECK
-
+        // Находится ли на арене и выход из неё при наличии
         if (!p.getMetadata("br_arena").get(0).asString().equalsIgnoreCase("null")){
             Arena LeaveArena = null;
-            System.out.println(p.getMetadata("br_arena").get(0).asString());
             for (Arena arena : Backrooms.getPlugin().getArenas()){
                 if (!arena.isGameActive()){
                     continue;
                 }
-
                 if (p.getMetadata("br_arena").get(0).asString().equalsIgnoreCase(arena.getId())){
                     LeaveArena = arena;
+                    break;
                 }
             }
-            LeaveArena.leave(p, false);
+            LeaveArena.leave(p);
         }
     }
 
     @EventHandler
     public void onPlayerDeathEvent(PlayerDeathEvent event){
-        if (event.getEntity().getMetadata("br_player_state").get(0).asString().equalsIgnoreCase("monster")){
-            return;
-        }
         Player p = event.getEntity();
         for (Arena arena : Backrooms.getPlugin().getArenas()){
             if (arena.getPlayers().contains(p)){
                 arena.death(p);
+                return;
             }
         }
     }

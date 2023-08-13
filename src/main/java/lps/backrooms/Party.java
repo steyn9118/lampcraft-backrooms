@@ -1,5 +1,7 @@
 package lps.backrooms;
 
+import net.md_5.bungee.api.chat.ClickEvent;
+import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.metadata.FixedMetadataValue;
@@ -27,6 +29,7 @@ public class Party {
         return partyLeader;
     }
 
+    // Инициализация пати
     public void init(Player partyLeader){
 
         this.players.add(partyLeader);
@@ -36,7 +39,7 @@ public class Party {
     }
 
 
-    // INVITING PLAYER
+    // Приглашение игрока
     public void invite(Player invited) {
 
         if (invitedPlayers.contains(invited) || players.contains(invited)){
@@ -44,44 +47,61 @@ public class Party {
             return;
         }
         invited.sendMessage(ChatColor.YELLOW + "Вас пригласил в пати " + partyLeader.getName());
-        invited.sendMessage(ChatColor.YELLOW + "Чтобы принять, напишите /party join " + partyLeader.getName());
+        TextComponent clikable_invite = new TextComponent("Чтобы принять, напишите /party join " + partyLeader.getName() + " или нажмите на это сообщение");
+        clikable_invite.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/party join " + partyLeader.getName()));
+        clikable_invite.setColor(net.md_5.bungee.api.ChatColor.YELLOW);
+        invited.spigot().sendMessage(clikable_invite);
         invitedPlayers.add(invited);
 
     }
 
-    // KICKING PLAYER FROM PARTY
+    // Исключение игрока
     public void kick(Player kicker, Player kicked){
 
-        if (kicker.equals(partyLeader) && players.contains(kicked)){
-            kicked.sendMessage(ChatColor.RED + "Вас выгнали из пати!");
-            this.leave(kicked);
-        }
-
-    }
-
-
-    // JOINING PARTY
-    public void join(Player joiner) {
-
-        if (!invitedPlayers.contains(joiner) || players.size() == partyMaxPlayers){
+        if (kicker.equals(kicked)){
+            kicker.sendMessage(ChatColor.RED + "Нельзя выгнать самого себя!");
             return;
         }
 
-        players.add(joiner);
-        joiner.sendMessage(ChatColor.GREEN + "Вы присоединились к пати " + partyLeader.getName());
-        joiner.setMetadata("br_party", new FixedMetadataValue(Backrooms.getPlugin(), partyLeader.getName()));
-        invitedPlayers.remove(joiner);
+        if (!kicker.equals(partyLeader)){
+            kicker.sendMessage(ChatColor.RED + "Только лидер пати может выгонять участников!");
+            return;
+        }
+
+        if (!players.contains(kicked)){
+            kicker.sendMessage(ChatColor.RED + "Игрок " + kicked.getName() + " не состоит в вашей пати!");
+            return;
+        }
+
+        kicker.sendMessage(ChatColor.GREEN + "Игрок " + kicked.getName() + " был выгнан из пати");
+        kicked.sendMessage(ChatColor.RED + "Вас выгнали из пати!");
+        this.leave(kicked);
+
+    }
+
+
+    // Присоединение к пати
+    public void join(Player joining_player) {
+
+        if (!invitedPlayers.contains(joining_player) || players.size() == partyMaxPlayers){
+            return;
+        }
+
+        players.add(joining_player);
+        joining_player.sendMessage(ChatColor.GREEN + "Вы присоединились к пати " + partyLeader.getName());
+        joining_player.setMetadata("br_party", new FixedMetadataValue(Backrooms.getPlugin(), partyLeader.getName()));
+        invitedPlayers.remove(joining_player);
 
         for (Player player : players){
-            player.sendMessage(joiner.getName() + "" + ChatColor.GREEN + " Присоединился к пати!");
+            player.sendMessage(joining_player.getName() + "" + ChatColor.GREEN + " Присоединился к пати!");
         }
 
     }
 
-    // LEAVING PARTY
+    // Выход из пати
     public void leave(Player p){
 
-        // IF MEMBER LEAVED
+        // Если вышел обычный участник
         if (!partyLeader.equals(p)){
             players.remove(p);
             p.setMetadata("br_party", new FixedMetadataValue(Backrooms.getPlugin(), "null"));
@@ -91,13 +111,12 @@ public class Party {
             return;
         }
 
-        // IF LEADER LEAVED
-        if (players.size() == 0){
-            return;
-        }
-        for (Player player : players){
-            player.setMetadata("br_party", new FixedMetadataValue(Backrooms.getPlugin(), "null"));
-            player.sendMessage(ChatColor.RED + "Пати расформировано");
+        // Если вышел лидер пати
+        if (players.size() != 0){
+            for (Player player : players){
+                player.setMetadata("br_party", new FixedMetadataValue(Backrooms.getPlugin(), "null"));
+                player.sendMessage(ChatColor.RED + "Пати расформировано");
+            }
         }
         players.clear();
         Backrooms.getPlugin().getParties().remove(this);

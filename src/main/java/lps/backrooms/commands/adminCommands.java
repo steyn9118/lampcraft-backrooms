@@ -29,6 +29,12 @@ public class adminCommands implements CommandExecutor {
                 return false;
             }
 
+            if (args[0].equalsIgnoreCase("help")){
+                p.sendMessage("Usage - /backrooms <>");
+                p.sendMessage("");
+                return false;
+            }
+
             if (args[0].equalsIgnoreCase("parties")){
                 for (Party party : Backrooms.getPlugin().getParties()){
                     p.sendMessage(party.getLeader().displayName());

@@ -4,11 +4,13 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerPickupItemEvent;
 
 public class ItemRelatedListeners implements Listener {
 
+    // Предотвращает выбрасывание предметов игроками, которые находятся в лобби или являются призраками/монстрами
     @EventHandler
     public void onItemDropEvent(PlayerDropItemEvent event){
 
@@ -21,6 +23,7 @@ public class ItemRelatedListeners implements Listener {
         }
     }
 
+    // Предотвращает подбирание предметов игроками, которые находятся в лобби или являются призраками/монстрами
     @EventHandler
     public void onItemPickUpEvent(PlayerPickupItemEvent event){
 
@@ -33,20 +36,28 @@ public class ItemRelatedListeners implements Listener {
         }
     }
 
+    // Предотвращает перемещение предметов в инвентаре, если игрок не жив (в игре)
+    @EventHandler
+    public void itemInventoryDragEvent(InventoryClickEvent event){
+        if (!event.getWhoClicked().getMetadata("br_player_state").get(0).asString().equalsIgnoreCase("alive")){
+            event.setCancelled(true);
+        }
+    }
+
+    // Предотвращает нанесение урона всем неживым игрокам
     @EventHandler
     public void onEntityDamage(EntityDamageByEntityEvent event){
+
+        if (!(event.getDamager() instanceof Player) || !(event.getEntity() instanceof Player)){
+            return;
+        }
 
         if (event.getDamager().hasPermission("br.bypass")){
             return;
         }
 
-        if (event.getDamager() instanceof Player && event.getEntity() instanceof Player){
-            if (!event.getDamager().getMetadata("br_player_state").get(0).asString().equalsIgnoreCase("monster")){
-                event.setCancelled(true);
-            }
-        } else if (!(event.getEntity() instanceof Player)){
-            event.setCancelled(true
-            );
+        if (!event.getEntity().getMetadata("br_player_state").get(0).asString().equalsIgnoreCase("alive")){
+            event.setCancelled(true);
         }
     }
 

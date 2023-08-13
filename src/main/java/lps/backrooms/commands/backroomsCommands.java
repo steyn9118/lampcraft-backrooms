@@ -2,6 +2,8 @@ package lps.backrooms.commands;
 
 import lps.backrooms.Levels.Arena;
 import lps.backrooms.Backrooms;
+import lps.backrooms.Levels.LevelOne;
+import lps.backrooms.Levels.LevelZero;
 import lps.backrooms.Party;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -32,7 +34,7 @@ public class backroomsCommands implements CommandExecutor {
                     if (!p.getMetadata("br_arena").get(0).asString().equalsIgnoreCase("null")){
                         for (Arena arena : Backrooms.getPlugin().getArenas()){
                             if (p.getMetadata("br_arena").get(0).asString().equalsIgnoreCase(arena.getId())){
-                                arena.leave(p, false);
+                                arena.leave(p);
                                 return true;
                             }
                         }
@@ -48,23 +50,23 @@ public class backroomsCommands implements CommandExecutor {
                 }
 
                 // ПРОВЕРКА ЛИДЕРА ПАТИ
-                Party Jparty = null;
+                Party Joining_party = null;
 
                 if (Bukkit.getPlayer(args[2]).getMetadata("br_party").get(0).asString().equalsIgnoreCase("null")) {
 
                     Party party = new Party();
                     party.init(Bukkit.getPlayer(args[2]));
                     Backrooms.getPlugin().getParties().add(party);
-                    Jparty = party;
+                    Joining_party = party;
 
                 } else {
 
-                    // TODO НАДО ПЕРЕПИСАТЬ ПРОВЕРКУ НА ЛИДЕРА
+                    // TODO НАДО ПЕРЕПИСАТЬ ПРОВЕРКУ НА ЛИДЕРА (сам хз, когда и зачем я это писал, но видимо что-то тут надо изменить)
                     for (Party party : Backrooms.getPlugin().getParties()) {
                         if (party.getPlayers().contains(Bukkit.getPlayer(args[2]))) {
                             if (party.getLeader().getName().equalsIgnoreCase(args[2])) {
 
-                                Jparty = party;
+                                Joining_party = party;
 
                             } else {
 
@@ -79,10 +81,10 @@ public class backroomsCommands implements CommandExecutor {
                 Arena Jarena = null;
 
                 // ПРОВЕРКА ИГРОКОВ ПАТИ, КОТОРЫЕ ЕЩЁ ИГРАЮТ
-                for (Player player : Jparty.getPlayers()){
+                for (Player player : Joining_party.getPlayers()){
                     if (!player.getMetadata("br_arena").get(0).asString().equalsIgnoreCase("null")){
-                        Jparty.getLeader().sendMessage(ChatColor.RED + "Игрок " + player.getName() + " ещё играет!");
-                        Jparty.getLeader().sendMessage(ChatColor.YELLOW + "Вы сможете присоединиться, когда все участники будут в лобби");
+                        Joining_party.getLeader().sendMessage(ChatColor.RED + "Игрок " + player.getName() + " ещё играет!");
+                        Joining_party.getLeader().sendMessage(ChatColor.YELLOW + "Вы сможете присоединиться, когда все участники будут в лобби");
                         return false;
                     }
                 }
@@ -99,7 +101,7 @@ public class backroomsCommands implements CommandExecutor {
                     return false;
                 }
 
-                Jarena.join(Jparty);
+                Jarena.join(Joining_party);
                 return true;
             }
 
@@ -112,7 +114,7 @@ public class backroomsCommands implements CommandExecutor {
 
                 for (Arena arena : Backrooms.getPlugin().getArenas()){
                     if (Objects.requireNonNull(Bukkit.getPlayer(args[1])).getMetadata("br_arena").get(0).asString().equalsIgnoreCase(arena.getId())){
-                        arena.leave(Bukkit.getPlayer(args[1]), true);
+                        arena.win(Bukkit.getPlayer(args[1]));
                         return true;
                     }
                 }
@@ -141,7 +143,17 @@ public class backroomsCommands implements CommandExecutor {
 
                 for (Arena arena : Backrooms.getPlugin().getArenas()){
                     if (Bukkit.getPlayer(args[1]).getMetadata("br_arena").get(0).asString().equalsIgnoreCase(arena.getId())){
-                        arena.playerBecameMonster(Bukkit.getPlayer(args[1]));
+
+                        if (arena instanceof LevelZero){
+                            LevelZero temp_arena = (LevelZero) arena;
+                            temp_arena.playerBecameMonster(Bukkit.getPlayer(args[1]));
+                            return true;
+                        }
+
+                        if (arena instanceof LevelOne){
+                            Bukkit.getPlayer(args[1]).sendMessage(ChatColor.RED + "На этом уровне нельзя превратиться в монстра!");
+                            return false;
+                        }
                     }
                 }
             }

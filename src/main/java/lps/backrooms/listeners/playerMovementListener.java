@@ -6,8 +6,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerMoveEvent;
 
-import java.util.ArrayList;
-
 public class playerMovementListener implements Listener {
 
     @EventHandler
@@ -23,7 +21,7 @@ public class playerMovementListener implements Listener {
     @EventHandler
     public void onPlayerJumpEvent(PlayerJumpEvent event){
 
-        if (event.getPlayer().getMetadata("br_player_state").get(0).asString().equalsIgnoreCase("alive")){
+        if (event.getPlayer().getMetadata("br_player_state").get(0).asString().equalsIgnoreCase("alive") || event.getPlayer().getMetadata("br_player_state").get(0).asString().equalsIgnoreCase("monster")){
             event.setCancelled(true);
         }
 

@@ -1,26 +1,18 @@
 package lps.backrooms.Levels;
 
 import lps.backrooms.Backrooms;
-import lps.backrooms.Party;
-import org.bukkit.*;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.metadata.FixedMetadataValue;
-import org.bukkit.scheduler.BukkitRunnable;
 
-import java.util.*;
+import java.util.ArrayList;
 
 public class LevelZero extends Arena {
 
     // СПЕЦИФИЧНЫЕ ЭТОМУ КЛАССУ
     int exitsAmount;
     int initialMonsterAmount;
-
-    // СЛУЖЕБНЫЕ ПЕРЕМЕННЫЕ
-    public int currentTime;
-    boolean gameActive = false;
-    Random random = new Random();
-    int[] previousLocationXZ = new int[2];
-    List<Location> randomLocsCache = new ArrayList<>();
 
     // ГРУППЫ ИГРОКОВ
     ArrayList<Player> monsters = new ArrayList<>();
@@ -33,126 +25,22 @@ public class LevelZero extends Arena {
 
     }
 
-    // ПРИСОЕДИНЕНИЕ ПАТИ К АРЕНЕ
-    public void join(Party party){
-
-        if (party.getPlayers().size() > maxPlayers || gameActive){
-            party.getLeader().sendMessage(ChatColor.RED + "Эта арена занята, попробуйте выбрать другую");
-            return;
-        }
-
-        // СПАВН ИГРОКОВ
-        Location loc = getRandomPos(32, 0, false);
-
-        for (Player p : party.getPlayers()) {
-
-            players.add(p);
-            spectatingCounters.put(p, 0);
-            p.getInventory().clear();
-            p.setMetadata("br_arena", new FixedMetadataValue(Backrooms.getPlugin(), this.id));
-            p.setMetadata("br_player_state", new FixedMetadataValue(Backrooms.getPlugin(), "alive"));
-
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi kit gameStart " + p.getName());
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi usermeta " + p.getName() + " increment games +1");
-            p.sendMessage(ChatColor.GREEN + "Вы присоединились к арене");
-
-            // ПРОВЕРКА НА СПАВН ВСЕХ ИГРОКОВ В ОДНОМ МЕСТЕ
-            if (party.getSpawnSettings()){
-                p.teleport(loc);
-            } else {
-                p.teleport(getRandomPos(32, 0, false));
-            }
-        }
-
-        startGame();
-    }
-
     // ВЫХОД С АРЕНЫ
-    public void leave(Player p, Boolean isWining){
+    public void leave(Player p){
 
+        // Выключение маскировки под монстра
         if (p.getMetadata("br_player_state").get(0).asString().equalsIgnoreCase("monster")){
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "kill " + p.getName());
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp user " + p.getName() + " permission settemp modelengine.* true 2s backrooms");
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi sudo " + p.getName() + " meg undisguise v1.5");
         }
 
-        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "team leave " + p.getName());
-        p.setMetadata("br_arena", new FixedMetadataValue(Backrooms.getPlugin(), "null"));
-        p.setMetadata("br_player_state", new FixedMetadataValue(Backrooms.getPlugin(), "null"));
-
-        p.getInventory().clear();
-        p.teleport(hubLocation);
-        p.stopSound(Sound.MUSIC_CREDITS);
-        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi kit lobby " + p.getName());
-
-        // ЕСЛИ ИГРОК ПОБЕДИЛ
-        if (isWining) {
-
-            p.sendMessage(ChatColor.GREEN + "Вы победили");
-            players.remove(p);
-
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi toast " + p.getName() + " -t:challenge -icon:yellow_wool &aПокинуть первый уровень");
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi usermeta " + p.getName() + " increment wins +1");
-
-        }
-
-        // ЕСЛИ ПРОИГРАЛ
-        else {
-
-            p.sendMessage(ChatColor.RED + "Вы проиграли");
-
-            if (players.contains(p)) {
-                players.remove(p);
-            } else {
-                ghosts.remove(p);
-            }
-        }
+        super.leave(p);
     }
 
-    // СМЕРТЬ ИГРОКА
+    // Смерть
     public void death(Player p){
-
-        // ЕСЛИ ИГРОК БЫЛ ПОСЛЕДНИМ
-        if (players.size() == 1){
-            leave(p, false);
-            return;
-        }
-
-        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "team join monsters " + p.getName());
-        p.sendTitle(ChatColor.RED + "Вы стали призраком", "Игроки и монстры не видят вас");
-        p.setMetadata("br_player_state", new FixedMetadataValue(Backrooms.getPlugin(), "dead"));
-
-        players.remove(p);
-        ghosts.add(p);
-
-        // ТЕЛЕПОРТАЦИЯ НА МЕСТО СМЕРТИ
-        Location deathLoc = p.getLocation();
-        BukkitRunnable afterDeathTeleport = new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (p.getMetadata("br_player_state").get(0).asString().equalsIgnoreCase("null")){
-                    return;
-                }
-                p.teleport(deathLoc);
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi kit spectate " + p.getName());
-            }
-        };
-        afterDeathTeleport.runTaskLater(Backrooms.getPlugin(), 2 * 20);
-    }
-
-    // НАБЛЮДЕНИЕ ЗА ИГРОКАМИ
-    public void spectate(Player p){
-
-        // ЕСЛИ ПОПАДАЕТ НА САМОГО СЕБЯ
-        if (players.get(spectatingCounters.get(p)).equals(p)){
-            spectatingCounters.put(p, spectatingCounters.get(p) + 1);
-        }
-
-        // ЕСЛИ ВЫХОДИТ ЗА ГРАНИЦУ КОЛИЧЕСТВА ИГРОКОВ
-        if (spectatingCounters.get(p) >= players.size()){
-            spectatingCounters.put(p, 0);
-        }
-
-        p.teleport(players.get(spectatingCounters.get(p)));
-        p.sendActionBar(ChatColor.GREEN + "Вы наблюдаете за игроком: " + ChatColor.YELLOW + players.get(spectatingCounters.get(p)).getName());
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute at " + p.getName() + " run playsound minecraft:entity.ender_dragon.growl master @a[distance=..20] ~ ~ ~ 50 1");
+        super.death(p);
     }
 
     // ПРЕВРАЩЕНИЕ В МОНСТРА
@@ -167,7 +55,14 @@ public class LevelZero extends Arena {
 
     }
 
-    private void startGame(){
+    // Начало игры
+    public void startGame(){
+        spawnThings();
+        super.startGame();
+    }
+
+    // Спавн хуйни
+    private void spawnThings(){
 
         gameActive = true;
 
@@ -209,82 +104,23 @@ public class LevelZero extends Arena {
 
         // СПАВН ЛЕСТНИЦ
         for (int i = 0; i < exitsAmount; i++){
-            Location loc = getRandomPos(64, 1, false);
+            Location loc = getRandomPos(100, 1, false);
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "mm m spawn ladder 1 " + "world" + "," + loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ() + ",0,0");
         }
-
-
-        // НАЧАЛО ОТСЧЁТА
-        currentTime = -1;
-        BukkitRunnable game = new BukkitRunnable() {
-            @Override
-            public void run() {
-
-                currentTime += 1;
-
-                // ЭМБИЕНТ
-                if (currentTime % 210 == 0 || currentTime == 0){
-                    for (Player p : players){
-                        p.playSound(p.getLocation(), Sound.MUSIC_CREDITS, SoundCategory.MASTER, 100f, 1f);
-                    }
-                }
-
-                // ПРОВЕРКА НА ЗАВЕРШЕНИЕ ИГРЫ
-                if (currentTime == maxTime || players.size() == 0){
-                    stopGame();
-                    this.cancel();
-                }
-            }
-        };
-        game.runTaskTimer(Backrooms.getPlugin(), 0, 20);
     }
 
     // КОНЕЦ ИГРЫ
-    private void stopGame(){
-
-        gameActive = false;
-        spectatingCounters.clear();
-
-        // УБИЙСТВО МОНСТРОВ
-        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "kill @e[type=minecraft:husk" +
-                ",x=" + borders.get(0).toString() + ",dx=" + (borders.get(1) - borders.get(0)) +
-                ",z=" + borders.get(2).toString() + ",dz=" + (borders.get(3) - borders.get(2)) +
-                ",y=" + floorsY.get(0) + ",dy=5]");
-
-        // УБИЙСТВО ПРЕДМЕТОВ
-        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "kill @e[type=minecraft:item" +
-                ",x=" + borders.get(0).toString() + ",dx=" + (borders.get(1) - borders.get(0)) +
-                ",z=" + borders.get(2).toString() + ",dz=" + (borders.get(3) - borders.get(2)) +
-                ",y=" + floorsY.get(0) + ",dy=5]");
-
-        // УБИЙСТВО ВЫХОДОВ
-        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "kill @e[type=minecraft:wither_skeleton" +
-                ",x=" + borders.get(0).toString() + ",dx=" + (borders.get(1) - borders.get(0)) +
-                ",z=" + borders.get(2).toString() + ",dz=" + (borders.get(3) - borders.get(2)) +
-                ",y=" + floorsY.get(0) + ",dy=5]");
-
-        // КИК ОСТАВШИХСЯ ИГРОКОВ
-        if (players.size() > 0){
-            int psize = players.size();
-            for (int i = 0; i < psize; i++){
-                leave(players.get(0), false);
-            }
-        }
-
-        // КИК ОСТАВШИХСЯ НАБЛЮДАТЕЛЕЙ
-        if (ghosts.size() > 0){
-            int gsize = ghosts.size();
-            for (int i = 0; i < gsize; i++){
-                leave(ghosts.get(0), false);
-            }
-        }
+    protected void stopGame(){
 
         // КИК ОСТАВШИХСЯ ИГРОКОВ-МОНСТРОВ
         if (monsters.size() > 0){
             int msize = monsters.size();
             for (int i = 0; i < msize; i++){
-                leave(monsters.get(i), false);
+                leave(monsters.get(i));
             }
         }
+
+        super.stopGame();
+
     }
 }

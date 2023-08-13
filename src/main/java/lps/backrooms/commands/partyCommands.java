@@ -122,16 +122,19 @@ public class partyCommands implements CommandExecutor {
                 // CHANGING SPAWN
                 if (args[0].equalsIgnoreCase("changespawn")){
                     if (!sender.hasPermission("br.changespawn")){
-                        p.sendMessage("Купи донат ;)");
+                        p.sendMessage(ChatColor.RED + "Купи донат ;)");
                         return false;
                     }
+                    if (!party.getLeader().equals(p)){
+                        p.sendMessage(ChatColor.RED + "Только лидер может менять настройки спавна!");
+                    }
                     if (party.getSpawnSettings()){
-                        party.getLeader().sendMessage(ChatColor.RED + "Включен спавн на случайных позициях");
+                        party.getLeader().sendMessage(ChatColor.YELLOW + "Включен спавн на случайных позициях");
                         party.setSpawnSettings(false);
                         return false;
                     }
                     party.setSpawnSettings(true);
-                    party.getLeader().sendMessage(ChatColor.GREEN + "Включен спавн на одной позиции");
+                    party.getLeader().sendMessage(ChatColor.YELLOW + "Включен спавн на одной позиции");
                     return false;
                 }
             }
