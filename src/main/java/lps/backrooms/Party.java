@@ -46,6 +46,7 @@ public class Party {
             partyLeader.sendMessage(ChatColor.RED + "Этот игрок уже приглашен в вашу пати!");
             return;
         }
+
         invited.sendMessage(ChatColor.YELLOW + "Вас пригласил в пати " + partyLeader.getName());
         TextComponent clikable_invite = new TextComponent("Чтобы принять, напишите /party join " + partyLeader.getName() + " или нажмите на это сообщение");
         clikable_invite.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/party join " + partyLeader.getName()));

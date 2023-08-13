@@ -39,6 +39,9 @@ public class ItemRelatedListeners implements Listener {
     // Предотвращает перемещение предметов в инвентаре, если игрок не жив (в игре)
     @EventHandler
     public void itemInventoryDragEvent(InventoryClickEvent event){
+        if (event.getWhoClicked().hasPermission("br.bypass")){
+            return;
+        }
         if (!event.getWhoClicked().getMetadata("br_player_state").get(0).asString().equalsIgnoreCase("alive")){
             event.setCancelled(true);
         }
@@ -47,16 +50,12 @@ public class ItemRelatedListeners implements Listener {
     // Предотвращает нанесение урона всем неживым игрокам
     @EventHandler
     public void onEntityDamage(EntityDamageByEntityEvent event){
-
-        if (!(event.getDamager() instanceof Player) || !(event.getEntity() instanceof Player)){
+        if (event.getEntity() instanceof Player && !(event.getDamager() instanceof Player)){
             return;
         }
-
-        if (event.getDamager().hasPermission("br.bypass")){
+        if ((event.getEntity() instanceof Player && event.getDamager().getMetadata("br_player_state").get(0).asString().equalsIgnoreCase("monster"))){
             return;
-        }
-
-        if (!event.getEntity().getMetadata("br_player_state").get(0).asString().equalsIgnoreCase("alive")){
+        } else {
             event.setCancelled(true);
         }
     }

@@ -2,6 +2,7 @@ package lps.backrooms.Levels;
 
 import lps.backrooms.Backrooms;
 import lps.backrooms.Party;
+import net.kyori.adventure.sound.SoundStop;
 import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.metadata.FixedMetadataValue;
@@ -10,6 +11,7 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
+import java.math.*;
 
 /*
 Абстрактный класс, используется только как родитель при наследовании классами уровней
@@ -28,10 +30,11 @@ public class Arena {
     Location hubLocation;
     Sound backgroundMusic;
     int backgroundMusicLenght; // 210 на нулевом уровне
+    boolean debug;
 
 
     // СЛУЖЕБНЫЕ ПЕРЕМЕННЫЕ
-    private final Backrooms plugin = Backrooms.getPlugin();
+    protected final Backrooms plugin = Backrooms.getPlugin();
     public int currentTime;
     boolean gameActive = false;
     Random random = new Random();
@@ -57,7 +60,7 @@ public class Arena {
 
 
     // ОбЩИЙ МЕТОД ИНИЦИАЛИЗАЦИИ ИЗ КОНФИГА
-    public void initFromCfgAbstract(String id, int maxPlayers, int maxTime, List<Integer> borders, List<Integer> floorsY, Location hubLocation, Sound music, int backgroundMusicLenght){
+    public void initFromCfgAbstract(String id, int maxPlayers, int maxTime, List<Integer> borders, List<Integer> floorsY, Location hubLocation, Sound music, int backgroundMusicLenght, boolean debug){
 
         this.id = id;
         this.maxPlayers = maxPlayers;
@@ -70,6 +73,8 @@ public class Arena {
         this.backgroundMusic = music;
         this.backgroundMusicLenght = backgroundMusicLenght;
 
+        this.debug = debug;
+
     }
 
     // ПОЛУЧЕНИЕ СЛУЧАЙНОЙ ПОЗИЦИИ
@@ -81,6 +86,10 @@ public class Arena {
             randomLocsCache.clear();
         }
         */
+
+        if (debug){
+            System.out.println("Поиск случайной позиции");
+        }
 
         int x;
         int z;
@@ -101,17 +110,22 @@ public class Arena {
             x = borders.get(0) + random.nextInt(borders.get(1) - borders.get(0));
             z = borders.get(2) + random.nextInt(borders.get(3) - borders.get(2));
 
+
             // ПРОВЕРКА НА РАССТОЯНИЕ ОТ ПРЕДЫДУЩЕГО СПАВНА
             if(minDistanceFromPrev > 0){
-                if (( (x - previousLocationXZ[0])^2 + (z - previousLocationXZ[1])^2 ) < minDistanceFromPrev*minDistanceFromPrev){
-                    continue;
+                if (previousLocationXZ[0] != 0 && previousLocationXZ[1] != 0){
+                    if ( (Math.sqrt( (x - previousLocationXZ[0])^2 + (z - previousLocationXZ[1])^2 )) < minDistanceFromPrev){
+                        continue;
+                    }
                 }
             }
+
 
             // НЕ ПУСТОЙ БЛОК НА ЭТИХ КООРДИНАТАХ
             if (!(new Location(Bukkit.getWorld("world"),  x, floorY, z).getBlock().isEmpty())){
                     continue;
             }
+
 
             // ПРОВЕРКА НА ДОСТАТОЧНОЕ КОЛИЧЕСТВА ПУСТЫХ БЛОКОВ ВОКРУГ
             if (emptyBlocksAroundRadius > 0){
@@ -129,6 +143,10 @@ public class Arena {
 
             }
 
+            if (debug){
+                System.out.println("Поиск завершен");
+            }
+
             previousLocationXZ[1] = z;
             previousLocationXZ[0] = x;
             return new Location(Bukkit.getWorld("world"), x, floorY, z);
@@ -143,6 +161,10 @@ public class Arena {
         if (party.getPlayers().size() > maxPlayers || gameActive){
             party.getLeader().sendMessage(ChatColor.RED + "Эта арена занята, попробуйте выбрать другую");
             return;
+        }
+
+        if (debug){
+            System.out.println("Пати присоединилось к арене");
         }
 
         // СПАВН ИГРОКОВ
@@ -173,27 +195,35 @@ public class Arena {
 
     // ВЫХОД С АРЕНЫ
     public void leave(Player p){
-        if (p.getMetadata("br_player_state").get(0).asString().equalsIgnoreCase("alive")){
-            for (Player ghost : ghosts){
-                p.showPlayer(ghost);
-            }
-        } else if (p.getMetadata("br_player_state").get(0).asString().equalsIgnoreCase("ghost")){
-            for (Player player : players){
-                player.showPlayer(p);
-            }
+        if (debug){
+            System.out.println("Игрок вышел с арены");
         }
+
+        // Если ливает живой игрок
+        if (p.getMetadata("br_player_state").get(0).asString().equalsIgnoreCase("alive")){
+            players.remove(p);
+            p.sendMessage(ChatColor.WHITE + "Вы покинули арену");
+        }
+
+        for (Player player : Bukkit.getOnlinePlayers()){
+            player.showPlayer(plugin, p);
+        }
+
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "tag " + p.getName() + " remove monster");
         Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "team leave " + p.getName());
         p.setMetadata("br_arena", new FixedMetadataValue(plugin, "null"));
         p.setMetadata("br_player_state", new FixedMetadataValue(plugin, "null"));
         p.getInventory().clear();
         p.teleport(hubLocation);
-        p.stopSound(backgroundMusic);
+        p.stopSound(SoundStop.all());
         Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi kit lobby " + p.getName());
     }
 
     // Победа
     public void win(Player p){
-
+        if (debug){
+            System.out.println("Игрок победил на арене");
+        }
         if (!p.getMetadata("br_player_state").get(0).asString().equals("alive")){
             p.sendMessage(ChatColor.RED + "Вы уже не можете победить!");
             return;
@@ -206,26 +236,35 @@ public class Arena {
 
         if (players.size() > 0){
             becameGhost(p);
+        } else {
+            leave(p);
         }
     }
 
     // Превращение в призрака
     protected void becameGhost(Player p){
-        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "team join ghosts " + p.getName());
-        p.sendTitle(ChatColor.RED + "Вы стали призраком", "Игроки и монстры не видят вас");
-        p.setMetadata("br_player_state", new FixedMetadataValue(plugin, "ghost"));
-        p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 9999*20, 1, false, false, false));
+        if (debug){
+            System.out.println("Игрок стал призраком");
+        }
         for (Player player : players){
             player.hidePlayer(plugin, p);
         }
-        for (Player player : ghosts){
-            p.showPlayer(plugin, player);
+        for (Player ghost : ghosts){
+            ghost.showPlayer(plugin, p);
         }
+        p.setMetadata("br_player_state", new FixedMetadataValue(plugin, "ghost"));
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "team join monsters " + p.getName());
+        p.sendTitle(ChatColor.RED + "Вы стали призраком", "Игроки и монстры не видят вас");
+        p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 9999*20, 1, false, false, false));
         ghosts.add(p);
     }
 
     // СМЕРТЬ ИГРОКА
     public void death(Player p){
+
+        if (debug){
+            System.out.println("Игрок умер");
+        }
 
         p.sendMessage(ChatColor.RED + "Вы проиграли");
         players.remove(p);
@@ -235,8 +274,7 @@ public class Arena {
             return;
         }
 
-        becameGhost(p);
-
+        p.setMetadata("br_player_state", new FixedMetadataValue(plugin, "ghost"));
         // ТЕЛЕПОРТАЦИЯ НА МЕСТО СМЕРТИ
         Location deathLoc = p.getLocation();
         BukkitRunnable afterDeathTeleport = new BukkitRunnable() {
@@ -247,6 +285,7 @@ public class Arena {
                 }
                 p.teleport(deathLoc);
                 Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi kit spectate " + p.getName());
+                becameGhost(p);
             }
         };
         afterDeathTeleport.runTaskLater(plugin, 2 * 20);
@@ -271,6 +310,10 @@ public class Arena {
 
     // Старт игры
     protected void startGame(){
+
+        if (debug){
+            System.out.println("Начало игры");
+        }
 
         gameActive = true;
 
@@ -301,6 +344,10 @@ public class Arena {
 
     // КОНЕЦ ИГРЫ
     protected void stopGame(){
+
+        if (debug){
+            System.out.println("Конец игры");
+        }
 
         gameActive = false;
         spectatingCounters.clear();

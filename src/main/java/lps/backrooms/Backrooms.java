@@ -80,6 +80,7 @@ public final class Backrooms extends JavaPlugin {
                 arena.initFromCfgLocal(exitsAmount, initMonstersAmount);
 
                 // Абстрактные переменные
+                boolean debug = config.getBoolean("debug");
                 String id = config.getString("id");
                 int maxPlayers = config.getInt("maxPlayers");
                 int maxTime = config.getInt("maxTime");
@@ -90,13 +91,14 @@ public final class Backrooms extends JavaPlugin {
                 List<Integer> floorsY = config.getIntegerList("floorsY");
                 List<Integer> borders = config.getIntegerList("borders");
 
-                arena.initFromCfgAbstract(id, maxPlayers, maxTime, borders, floorsY, hubLocation, music, musicLenght);
+                arena.initFromCfgAbstract(id, maxPlayers, maxTime, borders, floorsY, hubLocation, music, musicLenght, debug);
                 arenas.add(arena);
             }
             else if (config.getInt("level") == 1){
                 LevelOne arena = new LevelOne();
 
                 // Абстрактные переменные
+                boolean debug = config.getBoolean("debug");
                 String id = config.getString("id");
                 int maxPlayers = config.getInt("maxPlayers");
                 int maxTime = config.getInt("maxTime");
@@ -107,7 +109,7 @@ public final class Backrooms extends JavaPlugin {
                 List<Integer> floorsY = config.getIntegerList("floorsY");
                 List<Integer> borders = config.getIntegerList("borders");
 
-                arena.initFromCfgAbstract(id, maxPlayers, maxTime, borders, floorsY, hubLocation, music, musicLenght);
+                arena.initFromCfgAbstract(id, maxPlayers, maxTime, borders, floorsY, hubLocation, music, musicLenght, debug);
                 arenas.add(arena);
             }
             else {

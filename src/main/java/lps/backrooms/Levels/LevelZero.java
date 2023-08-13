@@ -5,6 +5,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.metadata.FixedMetadataValue;
+import org.bukkit.potion.PotionEffectType;
 
 import java.util.ArrayList;
 
@@ -34,6 +35,9 @@ public class LevelZero extends Arena {
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi sudo " + p.getName() + " meg undisguise v1.5");
         }
 
+        // showPlayer игрокам монстрам
+
+
         super.leave(p);
     }
 
@@ -46,13 +50,32 @@ public class LevelZero extends Arena {
     // ПРЕВРАЩЕНИЕ В МОНСТРА
     public void playerBecameMonster(Player p){
 
+        if (debug){
+            System.out.println("Игрок стал монстром");
+        }
+
+        p.removePotionEffect(PotionEffectType.SPEED);
+
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "tag " + p.getName() + " add monster");
         p.setMetadata("br_player_state", new FixedMetadataValue(Backrooms.getPlugin(), "monster"));
         p.getInventory().clear();
         Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi kit monster " + p.getName());
 
+        for (Player player : Bukkit.getOnlinePlayers()){
+            player.showPlayer(plugin, p);
+        }
+
         ghosts.remove(p);
         monsters.add(p);
 
+    }
+
+    // Превращение в призрака
+    public void becameGhost(Player p){
+        for (Player player : monsters){
+            player.hidePlayer(plugin, p);
+        }
+        super.becameGhost(p);
     }
 
     // Начало игры
@@ -63,6 +86,10 @@ public class LevelZero extends Arena {
 
     // Спавн хуйни
     private void spawnThings(){
+
+        if (debug){
+            System.out.println("Спавн хуйни");
+        }
 
         gameActive = true;
 
@@ -100,7 +127,12 @@ public class LevelZero extends Arena {
                 ",x=" + borders.get(0).toString() + ",dx=" + (borders.get(1) - borders.get(0)) +
                 ",z=" + borders.get(2).toString() + ",dz=" + (borders.get(3) - borders.get(2)) +
                 ",y=" + floorsY.get(0) + ",dy=5] minecraft:slowness 20 5 false");
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "tag @e[type=minecraft:husk" +
+                ",x=" + borders.get(0).toString() + ",dx=" + (borders.get(1) - borders.get(0)) +
+                ",z=" + borders.get(2).toString() + ",dz=" + (borders.get(3) - borders.get(2)) +
+                ",y=" + floorsY.get(0) + ",dy=5] add monster");
         Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "team join monsters @e[type=minecraft:husk]");
+
 
         // СПАВН ЛЕСТНИЦ
         for (int i = 0; i < exitsAmount; i++){

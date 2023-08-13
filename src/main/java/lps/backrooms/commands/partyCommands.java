@@ -127,6 +127,7 @@ public class partyCommands implements CommandExecutor {
                     }
                     if (!party.getLeader().equals(p)){
                         p.sendMessage(ChatColor.RED + "Только лидер может менять настройки спавна!");
+                        return false;
                     }
                     if (party.getSpawnSettings()){
                         party.getLeader().sendMessage(ChatColor.YELLOW + "Включен спавн на случайных позициях");
