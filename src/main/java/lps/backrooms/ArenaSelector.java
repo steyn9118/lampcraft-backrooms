@@ -22,7 +22,7 @@ public class ArenaSelector {
     // Инициализация
     public void init(int level, Player player){
 
-        Inventory menu = Bukkit.createInventory(null, InventoryType.CHEST);
+        Inventory menu = Bukkit.createInventory(null, InventoryType.CHEST, "Уровень " + level + ". Выбор арены");
 
         // Создание фона из панелей
         ItemStack filler = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
