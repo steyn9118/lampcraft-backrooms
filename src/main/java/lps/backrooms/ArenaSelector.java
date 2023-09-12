@@ -37,9 +37,9 @@ public class ArenaSelector {
         int place = 9;
         switch (level){
             case (0):
-                place = 11;
+                place = 10;
             case (1):
-                place = 12;
+                place = 11;
         }
         for (Arena arena : Backrooms.getPlugin().getArenas()){
 
@@ -60,10 +60,12 @@ public class ArenaSelector {
                 lore.add(ChatColor.GRAY + "Статус: " + ChatColor.RED + "Идёт игра");
                 lore.add(ChatColor.GRAY + "Живых ироков: " + ChatColor.YELLOW + arena.getPlayers().size());
                 arenaDescription.setLore(lore);
+                arenaIcon.setItemMeta(arenaDescription);
             } else {
                 lore.add(ChatColor.GRAY + "Статус: " + ChatColor.GREEN + "Арена свободна");
                 lore.add(ChatColor.GRAY + "Максимум игроков: " + arena.getMaxPlayers());
                 arenaDescription.setLore(lore);
+                arenaIcon.setItemMeta(arenaDescription);
             }
 
             menu.setItem(place, arenaIcon);

@@ -67,7 +67,7 @@ public class ItemRelatedListeners implements Listener {
         if (!event.getView().getTitle().equalsIgnoreCase("Уровень 0. Выбор арены")){
             return;
         }
-        if (event.getPlayer().getMetadata("br_state").get(0).asString().equalsIgnoreCase("null")){
+        if (event.getPlayer().getMetadata("br_player_state").get(0).asString().equalsIgnoreCase("null")){
             event.getPlayer().teleport(new Location(Bukkit.getWorld("world"), 0.5, 258.0, 4.5, 0, 180));
         }
     }
