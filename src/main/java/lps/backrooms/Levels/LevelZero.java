@@ -6,6 +6,7 @@ import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.ArrayList;
 
@@ -14,34 +15,45 @@ public class LevelZero extends Arena {
     // СПЕЦИФИЧНЫЕ ЭТОМУ КЛАССУ
     int exitsAmount;
     int initialMonsterAmount;
+    int bottlesAmount;
+    int lightbulbsAmount;
+    int phonesAmount;
 
     // ГРУППЫ ИГРОКОВ
     ArrayList<Player> monsters = new ArrayList<>();
 
     // МЕТОД ИНИЦИАЛИЗАЦИИ ИЗ КОНФИГА
-    public void initFromCfgLocal(int exitsAmount, int initialMonsterAmount){
+    public void initFromCfgLocal(int exitsAmount, int initialMonsterAmount, int bottlesAmount, int lightbulbsAmount, int phonesAmount){
 
         this.exitsAmount = exitsAmount;
         this.initialMonsterAmount = initialMonsterAmount;
+        this.bottlesAmount = bottlesAmount;
+        this.lightbulbsAmount = lightbulbsAmount;
+        this.phonesAmount = phonesAmount;
 
     }
 
     // ВЫХОД С АРЕНЫ
+    @Override
     public void leave(Player p){
 
         // Выключение маскировки под монстра
         if (p.getMetadata("br_player_state").get(0).asString().equalsIgnoreCase("monster")){
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp user " + p.getName() + " permission settemp modelengine.* true 2s backrooms");
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi sudo " + p.getName() + " meg undisguise v1.5");
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp user " + p.getName() + " permission settemp modelengine.* true 3s backrooms");
+            BukkitRunnable afterDeathKit = new BukkitRunnable() {
+                @Override
+                public void run() {
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi sudo " + p.getName() + " meg undisguise");
+                }
+            };
+            afterDeathKit.runTaskLater(plugin, 20);
         }
-
-        // showPlayer игрокам монстрам
-
 
         super.leave(p);
     }
 
     // Смерть
+    @Override
     public void death(Player p){
         Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute at " + p.getName() + " run playsound minecraft:entity.ender_dragon.growl master @a[distance=..20] ~ ~ ~ 50 1");
         super.death(p);
@@ -71,6 +83,7 @@ public class LevelZero extends Arena {
     }
 
     // Превращение в призрака
+    @Override
     public void becameGhost(Player p){
         for (Player player : monsters){
             player.hidePlayer(plugin, p);
@@ -79,7 +92,12 @@ public class LevelZero extends Arena {
     }
 
     // Начало игры
+    @Override
     public void startGame(){
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "kill @e[type=minecraft:husk" +
+                ",x=" + borders.get(0).toString() + ",dx=" + (borders.get(1) - borders.get(0)) +
+                ",z=" + borders.get(2).toString() + ",dz=" + (borders.get(3) - borders.get(2)) +
+                ",y=" + floorsY.get(0) + ",dy=5]");
         spawnThings();
         super.startGame();
     }
@@ -94,31 +112,30 @@ public class LevelZero extends Arena {
         gameActive = true;
 
         // СПАВН ПРЕДМЕТОВ
-        for (int I = 0; I < 24; I++){
-            Location loc = getRandomPos(24, 0, false);
+        // БУТЫЛКИ
+        for (int I = 0; I < bottlesAmount; I++){
+            Location loc = getRandomPos(24, 0, borders, -1);
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "clone 0 255 0 0 255 0 " + loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ());
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "setblock " + loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ() + " minecraft:air destroy");
+        }
 
-            // БУТЫЛКИ
-            if (I < 12){
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "clone 0 255 0 0 255 0 " + loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ());
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "setblock " + loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ() + " minecraft:air destroy");
-            }
+        // ЛАМПОЧКИ
+        for (int I = 0; I < lightbulbsAmount; I++){
+            Location loc = getRandomPos(24, 0, borders, -1);
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "clone 1 255 0 1 255 0 " + loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ());
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "setblock " + loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ() + " minecraft:air destroy");
+        }
 
-            // ЛАМПОЧКИ
-            if (I > 11 && I < 20){
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "clone 1 255 0 1 255 0 " + loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ());
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "setblock " + loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ() + " minecraft:air destroy");
-            }
-
-            // ТЕЛЕФОННЫЕ ТРУБКИ
-            if (I > 19){
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "clone 2 255 0 2 255 0 " + loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ());
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "setblock " + loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ() + " minecraft:air destroy");
-            }
+        // ТЕЛЕФОННЫЕ ТРУБКИ
+        for (int I = 0; I < phonesAmount; I++){
+            Location loc = getRandomPos(24, 0, borders, -1);
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "clone 2 255 0 2 255 0 " + loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ());
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "setblock " + loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ() + " minecraft:air destroy");
         }
 
         // СПАВН МОНСТРОВ
-        for (int I = 0; I < players.size() + 5; I++){
-            Location loc = getRandomPos(40, 1, false);
+        for (int I = 0; I < players.size() + initialMonsterAmount; I++){
+            Location loc = getRandomPos(40, 1, borders, -1);
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "mm m spawn ebaka 1 " + "world" + "," + loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ() + ",0,0");
         }
 
@@ -136,12 +153,13 @@ public class LevelZero extends Arena {
 
         // СПАВН ЛЕСТНИЦ
         for (int i = 0; i < exitsAmount; i++){
-            Location loc = getRandomPos(100, 1, false);
+            Location loc = getRandomPos(100, 1, borders, -1);
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "mm m spawn ladder 1 " + "world" + "," + loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ() + ",0,0");
         }
     }
 
     // КОНЕЦ ИГРЫ
+    @Override
     protected void stopGame(){
 
         // КИК ОСТАВШИХСЯ ИГРОКОВ-МОНСТРОВ

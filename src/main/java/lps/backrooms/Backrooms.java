@@ -3,6 +3,7 @@ package lps.backrooms;
 import lps.backrooms.Levels.Arena;
 import lps.backrooms.Levels.LevelOne;
 import lps.backrooms.Levels.LevelZero;
+import lps.backrooms.blockfilling.BlockFillingQueue;
 import lps.backrooms.commands.adminCommands;
 import lps.backrooms.commands.backroomsCommands;
 import lps.backrooms.commands.partyCommands;
@@ -19,12 +20,13 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+@SuppressWarnings("DataFlowIssue")
 public final class Backrooms extends JavaPlugin {
 
-    public static Backrooms plugin;
+    private static Backrooms plugin;
+    private final BlockFillingQueue blockFillingQueue = new BlockFillingQueue();
     public static ArrayList<Arena> arenas = new ArrayList<>();
     public ArrayList<Party> parties = new ArrayList<>();
-
 
     public ArrayList<Party> getParties(){
         return this.parties;
@@ -36,10 +38,16 @@ public final class Backrooms extends JavaPlugin {
         return plugin;
     }
 
+    public BlockFillingQueue getBlockFillingQueue() {
+        return blockFillingQueue;
+    }
+
     @Override
     public void onEnable() {
 
         plugin = this;
+        blockFillingQueue.init();
+
 
         Bukkit.getServer().getPluginManager().registerEvents(new playerMovementListener(), this);
         Bukkit.getServer().getPluginManager().registerEvents(new playerJoinListener(), this);
@@ -77,7 +85,10 @@ public final class Backrooms extends JavaPlugin {
                 // Локальные переменные
                 int exitsAmount = config.getInt("exitsAmount");
                 int initMonstersAmount = config.getInt("initialMonstersAmount");
-                arena.initFromCfgLocal(exitsAmount, initMonstersAmount);
+                int bottlesAmount = config.getInt("bottlesAmount");
+                int lightbulbsAmount = config.getInt("lightbulbsAmount");
+                int phonesAmount = config.getInt("phonesAmount");
+                arena.initFromCfgLocal(exitsAmount, initMonstersAmount, bottlesAmount, lightbulbsAmount, phonesAmount);
 
                 // Абстрактные переменные
                 boolean debug = config.getBoolean("debug");
@@ -95,7 +106,21 @@ public final class Backrooms extends JavaPlugin {
                 arenas.add(arena);
             }
             else if (config.getInt("level") == 1){
+
                 LevelOne arena = new LevelOne();
+
+                // Локальные переменные
+                int initialMonsterAmount = config.getInt("initialMonsterAmount");
+                int gasStationsAmount = config.getInt("gasStationsAmount");
+                int generatorsAmount = config.getInt("generatorsAmount");
+                int whrenchAmount = config.getInt("whrenchAmount");
+                int methAmount = config.getInt("methAmount");
+                int genFillingAmount = config.getInt("genFillingAmount");
+                int lightsOutDuration = config.getInt("lightsOutDuration");
+                int generatorsRequired = config.getInt("generatorRequired");
+                Integer[] lightsFillPos1 = config.getIntegerList("lightsFillPos1").toArray(new Integer[3]);
+                Integer[] lightsFillPos2 = config.getIntegerList("lightsFillPos2").toArray(new Integer[3]);
+                arena.initFromCfgLocal(initialMonsterAmount,gasStationsAmount, generatorsAmount, whrenchAmount, methAmount, genFillingAmount, lightsOutDuration, generatorsRequired, lightsFillPos1, lightsFillPos2);
 
                 // Абстрактные переменные
                 boolean debug = config.getBoolean("debug");

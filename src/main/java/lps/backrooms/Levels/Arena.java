@@ -11,7 +11,6 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
-import java.math.*;
 
 /*
 Абстрактный класс, используется только как родитель при наследовании классами уровней
@@ -31,16 +30,15 @@ public class Arena {
     Sound backgroundMusic;
     int backgroundMusicLenght; // 210 на нулевом уровне
     boolean debug;
+    // TODO катсцены и статистика для каждого уровня
 
 
     // СЛУЖЕБНЫЕ ПЕРЕМЕННЫЕ
     protected final Backrooms plugin = Backrooms.getPlugin();
     public int currentTime;
     boolean gameActive = false;
-    Random random = new Random();
+    protected Random random = new Random();
     int[] previousLocationXZ = new int[2];
-    // TODO кэш случайных локаций (низкий приоритет)
-    //List<Location> randomLocsCache = new ArrayList<>();
 
 
     // ГРУППЫ ИГРОКОВ
@@ -57,7 +55,7 @@ public class Arena {
     public ArrayList<Player> getPlayers(){
         return this.players;
     }
-
+    public int getMaxPlayers() {return maxPlayers;}
 
     // ОбЩИЙ МЕТОД ИНИЦИАЛИЗАЦИИ ИЗ КОНФИГА
     public void initFromCfgAbstract(String id, int maxPlayers, int maxTime, List<Integer> borders, List<Integer> floorsY, Location hubLocation, Sound music, int backgroundMusicLenght, boolean debug){
@@ -78,14 +76,7 @@ public class Arena {
     }
 
     // ПОЛУЧЕНИЕ СЛУЧАЙНОЙ ПОЗИЦИИ
-    protected Location getRandomPos(int minDistanceFromPrev, int emptyBlocksAroundRadius, boolean clearCache){
-
-        /*
-        Кэш локаций в данный момент не используется
-        if (clearCache){
-            randomLocsCache.clear();
-        }
-        */
+    protected Location getRandomPos(int minDistanceFromPrev, int emptyBlocksAroundRadius, List<Integer> borders, int requiredFloor){
 
         if (debug){
             System.out.println("Поиск случайной позиции");
@@ -98,18 +89,23 @@ public class Arena {
 
         do {
 
-            /*
-            // ПРОВЕРКА ДЛЯ УРОВНЕЙ С НЕСКОЛЬКИМИ ЭТАЖАМИ
-            // НА ДАННЫЙ МОМЕНТ НЕ ЗАКОНЧЕНА, ТАК КАК НЕ ИСПОЛЬЗУЕТСЯ
-
+            // Выбор высоты пола
             if (floorsY.size() != 1) {
-                floorY = floorsY.get(random.nextInt(floorsY.size()-1));
+                if (requiredFloor == -1){
+                    floorY = floorsY.get(random.nextInt(floorsY.size()-1));
+                } else {
+                    floorY = floorsY.get(requiredFloor - 1);
+                }
             }
-            */
 
+            // Создание случайных координат на плоскости
             x = borders.get(0) + random.nextInt(borders.get(1) - borders.get(0));
             z = borders.get(2) + random.nextInt(borders.get(3) - borders.get(2));
 
+            // НЕ ПУСТОЙ БЛОК НА ЭТИХ КООРДИНАТАХ
+            if (!(new Location(Bukkit.getWorld("world"),  x, floorY, z).getBlock().isEmpty())){
+                continue;
+            }
 
             // ПРОВЕРКА НА РАССТОЯНИЕ ОТ ПРЕДЫДУЩЕГО СПАВНА
             if(minDistanceFromPrev > 0){
@@ -119,13 +115,6 @@ public class Arena {
                     }
                 }
             }
-
-
-            // НЕ ПУСТОЙ БЛОК НА ЭТИХ КООРДИНАТАХ
-            if (!(new Location(Bukkit.getWorld("world"),  x, floorY, z).getBlock().isEmpty())){
-                    continue;
-            }
-
 
             // ПРОВЕРКА НА ДОСТАТОЧНОЕ КОЛИЧЕСТВА ПУСТЫХ БЛОКОВ ВОКРУГ
             if (emptyBlocksAroundRadius > 0){
@@ -139,7 +128,9 @@ public class Arena {
                     }
                 }
 
-                if (repeat){continue;}
+                if (repeat){
+                    continue;
+                }
 
             }
 
@@ -168,25 +159,26 @@ public class Arena {
         }
 
         // СПАВН ИГРОКОВ
-        Location loc = getRandomPos(32, 0, false);
+        Location loc = getRandomPos(32, 1, borders, -1);
 
         for (Player p : party.getPlayers()) {
 
             players.add(p);
             spectatingCounters.put(p, 0);
+            p.stopSound(SoundStop.all());
             p.getInventory().clear();
             p.setMetadata("br_arena", new FixedMetadataValue(plugin, this.id));
             p.setMetadata("br_player_state", new FixedMetadataValue(plugin, "alive"));
 
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi kit gameStart " + p.getName());
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi usermeta " + p.getName() + " increment games +1");
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi usermeta " + p.getName() + " increment level1_games +1");
             p.sendMessage(ChatColor.GREEN + "Вы присоединились к арене");
 
             // ПРОВЕРКА НА СПАВН ВСЕХ ИГРОКОВ В ОДНОМ МЕСТЕ
             if (party.getSpawnSettings()){
                 p.teleport(loc);
             } else {
-                p.teleport(getRandomPos(32, 0, false));
+                p.teleport(getRandomPos(32, 0, borders, -1));
             }
         }
 
@@ -232,7 +224,7 @@ public class Arena {
         p.sendMessage(ChatColor.GREEN + "Вы победили");
         players.remove(p);
         Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi toast " + p.getName() + " -t:challenge -icon:yellow_wool &aПокинуть первый уровень");
-        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi usermeta " + p.getName() + " increment wins +1");
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi usermeta " + p.getName() + " increment level1_wins +1");
 
         if (players.size() > 0){
             becameGhost(p);
@@ -271,6 +263,14 @@ public class Arena {
 
         // ЕСЛИ ИГРОК БЫЛ ПОСЛЕДНИМ
         if (players.size() == 0){
+            leave(p);
+            BukkitRunnable afterDeathKit = new BukkitRunnable() {
+                @Override
+                public void run() {
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi kit lobby " + p.getName());
+                }
+            };
+            afterDeathKit.runTaskLater(plugin, 2 * 20);
             return;
         }
 
@@ -283,8 +283,8 @@ public class Arena {
                 if (!p.getMetadata("br_player_state").get(0).asString().equalsIgnoreCase("ghost")){
                     return;
                 }
-                p.teleport(deathLoc);
                 Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi kit spectate " + p.getName());
+                p.teleport(deathLoc);
                 becameGhost(p);
             }
         };

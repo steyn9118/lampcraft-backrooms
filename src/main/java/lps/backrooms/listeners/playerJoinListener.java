@@ -1,8 +1,11 @@
 package lps.backrooms.listeners;
 
-import lps.backrooms.Levels.Arena;
 import lps.backrooms.Backrooms;
+import lps.backrooms.Levels.Arena;
+import lps.backrooms.Levels.LevelZero;
 import lps.backrooms.Party;
+import net.md_5.bungee.api.chat.ClickEvent;
+import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -12,6 +15,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.metadata.FixedMetadataValue;
 
+@SuppressWarnings("DataFlowIssue")
 public class playerJoinListener implements Listener {
 
     @EventHandler
@@ -20,6 +24,10 @@ public class playerJoinListener implements Listener {
         p.setMetadata("br_party", new FixedMetadataValue(Backrooms.getPlugin(), "null"));
         p.setMetadata("br_arena", new FixedMetadataValue(Backrooms.getPlugin(), "null"));
         p.setMetadata("br_player_state", new FixedMetadataValue(Backrooms.getPlugin(), "null"));
+        TextComponent clikable_invite = new TextComponent("Если у вас не загрузился ресурспак - нажмите на это сообщение или напишите /pack");
+        clikable_invite.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/pack"));
+        clikable_invite.setColor(net.md_5.bungee.api.ChatColor.YELLOW);
+        p.spigot().sendMessage(clikable_invite);
     }
 
     @EventHandler
@@ -60,12 +68,14 @@ public class playerJoinListener implements Listener {
     public void onPlayerDeathEvent(PlayerDeathEvent event){
         Player p = event.getEntity();
         for (Arena arena : Backrooms.getPlugin().getArenas()){
-            if (arena.getPlayers().contains(p)){
+            if (arena.getPlayers().contains(p)) {
                 arena.death(p);
-                return;
+                if (arena instanceof LevelZero) {
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute at " + p.getName() + " run playsound minecraft:entity.ender_dragon.growl master @a[distance=..20] ~ ~ ~ 50 1");
+                    return;
+                }
             }
         }
     }
-
 
 }
