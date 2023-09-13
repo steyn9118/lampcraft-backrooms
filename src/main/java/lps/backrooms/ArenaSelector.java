@@ -22,10 +22,20 @@ public class ArenaSelector {
     // Инициализация
     public void init(int level, Player player){
 
-        Inventory menu = Bukkit.createInventory(null, InventoryType.CHEST, "Уровень " + level + ". Выбор арены");
+        Inventory menu;
+
+        if (level == 1){
+            menu = Bukkit.createInventory(null, InventoryType.CHEST, "Уровень I. Выбор арены");
+        } else if (level == 0){
+            menu = Bukkit.createInventory(null, InventoryType.CHEST, "Уровень O. Выбор арены");
+        } else {
+            menu = Bukkit.createInventory(null, InventoryType.CHEST, "Уровень ?. Выбор арены");
+        }
+
+
 
         // Создание фона из панелей
-        ItemStack filler = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
+        ItemStack filler = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
         for (int i = 0; i < 9; i++){
             menu.setItem(i, filler);
         }
@@ -52,16 +62,16 @@ public class ArenaSelector {
 
             ItemStack arenaIcon = new ItemStack(Material.RED_STAINED_GLASS_PANE);
             ItemMeta arenaDescription = arenaIcon.getItemMeta();
-            arenaDescription.setDisplayName(arena.getId());
+            arenaDescription.setDisplayName(ChatColor.RESET + arena.getId());
             List<String> lore = new ArrayList<>();
 
             if (arena.isGameActive()){
-                arenaIcon.setType(Material.LIME_STAINED_GLASS_PANE);
                 lore.add(ChatColor.GRAY + "Статус: " + ChatColor.RED + "Идёт игра");
                 lore.add(ChatColor.GRAY + "Живых ироков: " + ChatColor.YELLOW + arena.getPlayers().size());
                 arenaDescription.setLore(lore);
                 arenaIcon.setItemMeta(arenaDescription);
             } else {
+                arenaIcon.setType(Material.LIME_STAINED_GLASS_PANE);
                 lore.add(ChatColor.GRAY + "Статус: " + ChatColor.GREEN + "Арена свободна");
                 lore.add(ChatColor.GRAY + "Максимум игроков: " + arena.getMaxPlayers());
                 arenaDescription.setLore(lore);

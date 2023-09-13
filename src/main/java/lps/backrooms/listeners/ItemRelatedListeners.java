@@ -44,19 +44,29 @@ public class ItemRelatedListeners implements Listener {
     // Предотвращает перемещение предметов в инвентаре, если игрок не жив (в игре)
     @EventHandler
     public void itemInventoryClickEvent(InventoryClickEvent event){
-        if (event.getCurrentItem().getItemMeta().getLore().contains(ChatColor.GRAY + "Статус: " + ChatColor.GREEN + "Арена свободна")){
-            String id = event.getCurrentItem().getI18NDisplayName();
-            for (Arena arena : Backrooms.getPlugin().getArenas()){
-                if (arena.getId().equalsIgnoreCase(id)){
-                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "br join " + event.getWhoClicked().getName() + " " + id);
-                    event.setCancelled(true);
-                    break;
+        if (event.getCurrentItem() == null){
+            return;
+        }
+
+        if (event.getCurrentItem().getItemMeta() != null && event.getCurrentItem().getItemMeta().getLore() != null && event.getCurrentItem().getItemMeta().hasDisplayName()){
+            if (event.getCurrentItem().getItemMeta().getLore().contains(ChatColor.GRAY + "Статус: " + ChatColor.GREEN + "Арена свободна")){
+                String id = event.getCurrentItem().getItemMeta().getDisplayName();
+                System.out.println(id);
+                for (Arena arena : Backrooms.getPlugin().getArenas()){
+                    if (arena.getId().equalsIgnoreCase(id.toLowerCase())){
+
+                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "br join " + event.getWhoClicked().getName() + " " + id);
+                        break;
+                    }
                 }
+                event.setCancelled(true);
             }
         }
+
         if (event.getWhoClicked().hasPermission("br.bypass")){
             return;
         }
+
         if (!event.getWhoClicked().getMetadata("br_player_state").get(0).asString().equalsIgnoreCase("alive")){
             event.setCancelled(true);
         }
@@ -64,11 +74,9 @@ public class ItemRelatedListeners implements Listener {
 
     @EventHandler
     public void menuCloseEvent(InventoryCloseEvent event){
-        if (!event.getView().getTitle().equalsIgnoreCase("Уровень 0. Выбор арены")){
-            return;
-        }
-        if (event.getPlayer().getMetadata("br_player_state").get(0).asString().equalsIgnoreCase("null")){
-            event.getPlayer().teleport(new Location(Bukkit.getWorld("world"), 0.5, 258.0, 4.5, 0, 180));
+        if (event.getView().getTitle().equals("Уровень O. Выбор арены") && event.getPlayer().getMetadata("br_player_state").get(0).asString().equalsIgnoreCase("null")){
+            // TODO Исправить
+            //Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi tpopos " + event.getPlayer().getName() + " 0.5 258.0 4.5 world 0 -180");
         }
     }
 

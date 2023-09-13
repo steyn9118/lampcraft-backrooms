@@ -86,8 +86,16 @@ public class Arena {
         int z;
         boolean repeat;
         int floorY = floorsY.get(0);
+        int recursionLimit = 999;
+        int currentIteration = 0;
 
         do {
+
+            if (currentIteration == recursionLimit){
+                return null;
+            }
+
+            currentIteration++;
 
             // Выбор высоты пола
             if (floorsY.size() != 1) {
@@ -99,8 +107,18 @@ public class Arena {
             }
 
             // Создание случайных координат на плоскости
-            x = borders.get(0) + random.nextInt(borders.get(1) - borders.get(0));
-            z = borders.get(2) + random.nextInt(borders.get(3) - borders.get(2));
+            // TODO работа с отрицательными координатами
+            if (borders.get(0) < borders.get(1)){
+                x = borders.get(0) + random.nextInt(Math.abs(borders.get(1) - borders.get(0)));
+            } else {
+                x = borders.get(1) + random.nextInt(Math.abs(borders.get(1) - borders.get(0)));
+            }
+
+            if (borders.get(2) < borders.get(3)){
+                z = borders.get(2) + random.nextInt(Math.abs(borders.get(3) - borders.get(2)));
+            } else {
+                z = borders.get(3) + random.nextInt(Math.abs(borders.get(3) - borders.get(2)));
+            }
 
             // НЕ ПУСТОЙ БЛОК НА ЭТИХ КООРДИНАТАХ
             if (!(new Location(Bukkit.getWorld("world"),  x, floorY, z).getBlock().isEmpty())){

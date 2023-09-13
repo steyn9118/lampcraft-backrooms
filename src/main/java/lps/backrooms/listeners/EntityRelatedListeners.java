@@ -47,26 +47,23 @@ public class EntityRelatedListeners implements Listener {
         Entity entity = event.getRightClicked();
         Player player = event.getPlayer();
 
-        if (!entity.getType().equals(EntityType.PIG)){
-            return;
+        if (!entity.getMetadata("time_left").isEmpty()){
+
+            // Заправка генератора
+            for (Arena arena : Backrooms.getPlugin().getArenas()){
+                if (!player.getMetadata("br_arena").get(0).asString().equalsIgnoreCase(arena.getId())){
+                    continue;
+                }
+                if (arena instanceof LevelOne){
+                    LevelOne temp_arena = (LevelOne) arena;
+                    temp_arena.generatorFill(player, entity);
+                } else {
+                    player.sendMessage(ChatColor.RED + "Генераторы не работают на этом уровне!");
+                }
+                return;
+            }
         }
 
-        if (!entity.getName().equalsIgnoreCase("Генератор")){
-            return;
-        }
 
-        // Заправка генератора
-        for (Arena arena : Backrooms.getPlugin().getArenas()){
-            if (!player.getMetadata("br_arena").get(0).asString().equalsIgnoreCase(arena.getId())){
-                continue;
-            }
-            if (arena instanceof LevelOne){
-                LevelOne temp_arena = (LevelOne) arena;
-                temp_arena.generatorFill(player, entity);
-            } else {
-                player.sendMessage(ChatColor.RED + "Генераторы не работают на этом уровне!");
-            }
-            return;
-        }
     }
 }

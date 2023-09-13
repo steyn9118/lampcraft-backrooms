@@ -33,7 +33,7 @@ public class LevelOne extends Arena{
     Integer[] lightsFillPos2;
 
     // Служебные
-    BoundingBox boundingBox = new BoundingBox(borders.get(0), floorsY.get(0), borders.get(1), borders.get(2), floorsY.get(0)+5, borders.get(3));
+    BoundingBox boundingBox;
     ArrayList<Entity> generators = new ArrayList<>();
     boolean isDark = false;
     boolean stopDarkness = false;
@@ -51,6 +51,7 @@ public class LevelOne extends Arena{
         this.lightsOutDuration = lightsOutDuration;
         this.lightsFillPos1 = lightsFillPos1;
         this.lightsFillPos2 = lightsFillPos2;
+        boundingBox = new BoundingBox(lightsFillPos1[0], floorsY.get(0), lightsFillPos1[2], lightsFillPos2[0], floorsY.get(0)+5, lightsFillPos2[2]);
 
     }
 
@@ -90,6 +91,9 @@ public class LevelOne extends Arena{
 
         // Добавляем генераторы
         generators.addAll(Objects.requireNonNull(Bukkit.getWorld("world")).getNearbyEntities(boundingBox, (entity) -> entity.getType() == EntityType.PIG));
+        for (Entity gen : generators){
+            gen.setMetadata("time_left", new FixedMetadataValue(plugin, 0));
+        }
     }
 
     // Темнота
@@ -120,16 +124,19 @@ public class LevelOne extends Arena{
                 time += 1;
 
                 // Спавн Улыбающихся
-                for (Player p : players){
-                    List<Integer> playerCords = new ArrayList<>();
-                    playerCords.add(p.getLocation().getBlockX() - 1);
-                    playerCords.add(p.getLocation().getBlockY() - 1);
-                    playerCords.add(p.getLocation().getBlockX() + 1);
-                    playerCords.add(p.getLocation().getBlockY() + 1);
-                    Location loc = getRandomPos(0, 0, playerCords, -1);
+                if (time % 2 == 0){
+                    for (Player p : players){
+                        List<Integer> playerCords = new ArrayList<>();
+                        playerCords.add(p.getLocation().getBlockX() - 5);
+                        playerCords.add(p.getLocation().getBlockX() + 5);
+                        playerCords.add(p.getLocation().getBlockZ() - 5);
+                        playerCords.add(p.getLocation().getBlockZ() + 5);
+                        Location loc = getRandomPos(0, 0, playerCords, -1);
+                        if (loc != null){
+                            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "mm m spawn smiler 1 " + "world" + "," + loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ() + ",0,0");
+                        }
+                    }
                 }
-
-
 
                 // Конец темноты
                 if (currentTime == maxTime || players.size() == 0 || time == lightsOutDuration || stopDarkness){
@@ -145,9 +152,13 @@ public class LevelOne extends Arena{
 
                     // Включение света
                     BlockFillingRequest enableLight = new BlockFillingRequest();
-                    enableLight.init(lightsFillPos1, lightsFillPos2, "redstone_lamp[lit=false]redstone_lamp[lit=true]", "50%redstone_lamp[lit=false],50%redstone_lamp[lit=true]");
+                    enableLight.init(lightsFillPos1, lightsFillPos2, "redstone_lamp[lit=false]", "50%redstone_lamp[lit=false],50%redstone_lamp[lit=true]");
                     plugin.getBlockFillingQueue().addRequest(enableLight);
                     this.cancel();
+
+                    for (Player player : players){
+                        player.removePotionEffect(PotionEffectType.BLINDNESS);
+                    }
                 }
             }
         };
@@ -175,30 +186,36 @@ public class LevelOne extends Arena{
         }
 
         // Заправка генератора
-        p.getInventory().removeItem(new ItemStack(Material.COAL, 1));
+        p.getInventory().remove(Material.COAL);
         generator.setMetadata("time_left", new FixedMetadataValue(plugin, genFillingAmount));
         int gensLeft = generatorsRequired;
         for (Entity gener : generators){
-            if (generator.getMetadata("time_left").get(0).asInt() > 0){
+            if (gener.getMetadata("time_left").get(0).asInt() > 1){
                 gensLeft--;
             }
         }
-        p.sendActionBar("Генератор заправлен! Осталось ещё " + gensLeft + "генераторов");
+        for (Player player : players){
+            if (player.equals(p)){
+                p.sendMessage("Генератор заправлен! Осталось заправить ещё " + gensLeft + "генераторов");
+            } else {
+                player.sendMessage("Игрок " + p.getName() + " заправил генератор! Осталось заправить ещё " + gensLeft + "генераторов");
+            }
+        }
     }
 
     @Override
     public void win(Player p) {
 
-        List<Entity> gens = new ArrayList<>();
+        List<Entity> currentGens = new ArrayList<>();
 
         for (Entity generator : generators){
             if (generator.getMetadata("time_left").get(0).asInt() > 0){
-                gens.add(generator);
+                currentGens.add(generator);
             }
         }
 
-        if (gens.size() < generatorsRequired){
-            p.sendMessage(ChatColor.RED + "Чтобы победить, вы должны запустить все генераторы!");
+        if (currentGens.size() < generatorsRequired){
+            p.sendMessage(ChatColor.RED + "Чтобы победить, вы должны запустить ещё " + ChatColor.YELLOW + generatorsRequired + ChatColor.RED + " генераторов(-а)!");
             return;
         }
 
@@ -240,33 +257,51 @@ public class LevelOne extends Arena{
 
     }
 
+    @Override
+    public void stopGame(){
+
+        isDark = false;
+        stopDarkness = false;
+        generators.clear();
+
+        super.stopGame();
+
+    }
+
     public void methUse(Player player){
+        player.getInventory().removeItem(new ItemStack(Material.PINK_DYE, 1));
         int chance = random.nextInt(1, 12);
         switch (chance){
             case (1):
                 // Очистка инвенторя
                 player.sendTitle("", "Gulp!", 10, 20, 10);
                 player.getInventory().clear();
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi kit gameStart " + player.getName());
+                break;
 
             case (2):
                 // Убийство игрока
                 player.sendTitle("", "Bad trip", 10, 20, 10);
                 player.setHealth(0);
+                break;
 
             case (3):
                 // Отрыжка (ничего)
                 player.sendTitle("", "I found pills...", 10, 20, 10);
                 player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_BURP, SoundCategory.MASTER, 100, 1);
+                break;
 
             case (4):
                 // Телепорт в случайное место
                 player.sendTitle("", "Telepills", 10, 20, 10);
                 player.teleport(getRandomPos(0, 0, borders, -1));
+                break;
 
             case (5):
                 // Ночное зрение
                 player.sendTitle("", "I can see forever!", 10, 20, 10);
                 player.addPotionEffect(new PotionEffect(PotionEffectType.NIGHT_VISION, 9999*20, 1, false, false, true));
+                break;
 
             case (6):
                 // Свечение
@@ -274,18 +309,21 @@ public class LevelOne extends Arena{
                 for (Player p : players){
                     p.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 9999*20, 1, false, false, false));
                 }
+                break;
 
             case (7):
                 // Обездвиживание
                 player.sendTitle("", "Paralysis", 10, 20, 10);
                 player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 10*20, 1, false, false, false));
                 player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 10*20, 99, false, false, false));
+                break;
 
             case (8):
                 // Скорость + неуязвимость
                 player.sendTitle("", "POWER PILL", 10, 20, 10);
-                player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 10*20, 3, false, false, false));
+                player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 10*20, 6, false, false, false));
                 player.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, 10*20, 99, false, false, false));
+                break;
 
             case (9):
                 // Постоянное увелечение скорости
@@ -300,6 +338,7 @@ public class LevelOne extends Arena{
                     case (2):
                         player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 9999*20, 3, false, false, false));
                 }
+                break;
 
             case (10):
                 // Постоянное замедление
@@ -314,6 +353,7 @@ public class LevelOne extends Arena{
                     case (2):
                         player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 9999*20, 3, false, false, false));
                 }
+                break;
 
             case (11):
                 // Невозможность подбирать предметы
@@ -336,12 +376,14 @@ public class LevelOne extends Arena{
                     }
                 };
                 pickupDebuffCounter.runTaskTimer(plugin, 0, 20);
+                break;
         }
 
     }
 
     public void wrenchUse(Player player){
         int chance = random.nextInt(1, 12);
+        player.getInventory().removeItem(new ItemStack(Material.STICK, 1));
         List<Entity> facelings = (List<Entity>) Bukkit.getWorld("world").getNearbyEntities(boundingBox, (entity) -> entity.getType() == EntityType.DROWNED);
         switch (chance){
             case (1):
@@ -351,6 +393,7 @@ public class LevelOne extends Arena{
                     LivingEntity tempGen = (LivingEntity) gen;
                     tempGen.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 15*20, 1, false, false, false));
                 }
+                break;
 
             case (2):
                 // Спавн колонок
@@ -359,6 +402,7 @@ public class LevelOne extends Arena{
                     Location loc = getRandomPos(40, 1, borders, 1);
                     Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "mm m spawn gasStation 1 " + "world" + "," + loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ() + ",0,0");
                 }
+                break;
 
             case (3):
                 // Деспавн колонок
@@ -370,16 +414,19 @@ public class LevelOne extends Arena{
                 for (int i = 0; i < 3; i++){
                     gasStations.get(0).remove();
                 }
+                break;
 
             case (4):
                 // Выключение всех генераторов
                 player.sendTitle("", "Darkness incoming...", 10, 20, 10);
                 lightsOut();
+                break;
 
             case (5):
                 // Останока тьмы
                 player.sendTitle("", "The Light!", 10, 20, 10);
                 stopDarkness = true;
+                break;
 
             case (6):
                 // Телепорт безликих в одно место
@@ -390,6 +437,7 @@ public class LevelOne extends Arena{
                     LivingEntity faceling_temp = (LivingEntity) faceling;
                     faceling_temp.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 30*5, 5, false, false, false));
                 }
+                break;
 
             case (7):
                 // Мега-заправка работающих генеров
@@ -400,16 +448,19 @@ public class LevelOne extends Arena{
                     }
                     gen.setMetadata("time_left", new FixedMetadataValue(plugin, genFillingAmount*2));
                 }
+                break;
 
             case (8):
                 // Metal pipe
                 player.sendTitle("", "☠", 10, 20, 10);
                 player.playSound(player, Sound.BLOCK_ANVIL_PLACE, SoundCategory.MASTER, 100, 1);
+                break;
 
             case (9):
                 // Теп безликой к игроку
                 player.sendTitle("", "Unintended consequences", 10, 20, 10);
                 facelings.get(0).teleport(player.getLocation());
+                break;
 
             case (10):
                 // Увеличение скорости безликих на 30 сек
@@ -418,6 +469,7 @@ public class LevelOne extends Arena{
                     LivingEntity faceling_living = (LivingEntity) faceling;
                     faceling_living.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 30*20, 1, false, false, false));
                 }
+                break;
 
             case (11):
                 // Стан безликих на 15 сек
@@ -426,6 +478,7 @@ public class LevelOne extends Arena{
                     LivingEntity faceling_living = (LivingEntity) faceling;
                     faceling_living.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 15*20, 10, false, false, false));
                 }
+                break;
         }
     }
 }

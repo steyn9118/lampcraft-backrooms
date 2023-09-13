@@ -7,6 +7,7 @@ import lps.backrooms.blockfilling.BlockFillingQueue;
 import lps.backrooms.commands.adminCommands;
 import lps.backrooms.commands.backroomsCommands;
 import lps.backrooms.commands.partyCommands;
+import lps.backrooms.listeners.EntityRelatedListeners;
 import lps.backrooms.listeners.ItemRelatedListeners;
 import lps.backrooms.listeners.playerJoinListener;
 import lps.backrooms.listeners.playerMovementListener;
@@ -48,7 +49,7 @@ public final class Backrooms extends JavaPlugin {
         plugin = this;
         blockFillingQueue.init();
 
-
+        Bukkit.getServer().getPluginManager().registerEvents(new EntityRelatedListeners(), this);
         Bukkit.getServer().getPluginManager().registerEvents(new playerMovementListener(), this);
         Bukkit.getServer().getPluginManager().registerEvents(new playerJoinListener(), this);
         Bukkit.getServer().getPluginManager().registerEvents(new ItemRelatedListeners(), this);
@@ -109,19 +110,6 @@ public final class Backrooms extends JavaPlugin {
 
                 LevelOne arena = new LevelOne();
 
-                // Локальные переменные
-                int initialMonsterAmount = config.getInt("initialMonsterAmount");
-                int gasStationsAmount = config.getInt("gasStationsAmount");
-                int generatorsAmount = config.getInt("generatorsAmount");
-                int whrenchAmount = config.getInt("whrenchAmount");
-                int methAmount = config.getInt("methAmount");
-                int genFillingAmount = config.getInt("genFillingAmount");
-                int lightsOutDuration = config.getInt("lightsOutDuration");
-                int generatorsRequired = config.getInt("generatorRequired");
-                Integer[] lightsFillPos1 = config.getIntegerList("lightsFillPos1").toArray(new Integer[3]);
-                Integer[] lightsFillPos2 = config.getIntegerList("lightsFillPos2").toArray(new Integer[3]);
-                arena.initFromCfgLocal(initialMonsterAmount,gasStationsAmount, generatorsAmount, whrenchAmount, methAmount, genFillingAmount, lightsOutDuration, generatorsRequired, lightsFillPos1, lightsFillPos2);
-
                 // Абстрактные переменные
                 boolean debug = config.getBoolean("debug");
                 String id = config.getString("id");
@@ -135,6 +123,20 @@ public final class Backrooms extends JavaPlugin {
                 List<Integer> borders = config.getIntegerList("borders");
 
                 arena.initFromCfgAbstract(id, maxPlayers, maxTime, borders, floorsY, hubLocation, music, musicLenght, debug);
+
+                // Локальные переменные
+                int initialMonsterAmount = config.getInt("initialMonsterAmount");
+                int gasStationsAmount = config.getInt("gasStationsAmount");
+                int generatorsAmount = config.getInt("generatorsAmount");
+                int whrenchAmount = config.getInt("whrenchAmount");
+                int methAmount = config.getInt("methAmount");
+                int genFillingAmount = config.getInt("genFillingAmount");
+                int lightsOutDuration = config.getInt("lightsOutDuration");
+                int generatorsRequired = config.getInt("generatorsRequired");
+                Integer[] lightsFillPos1 = config.getIntegerList("lightsFillPos1").toArray(new Integer[3]);
+                Integer[] lightsFillPos2 = config.getIntegerList("lightsFillPos2").toArray(new Integer[3]);
+                arena.initFromCfgLocal(initialMonsterAmount,gasStationsAmount, generatorsAmount, whrenchAmount, methAmount, genFillingAmount, lightsOutDuration, generatorsRequired, lightsFillPos1, lightsFillPos2);
+
                 arenas.add(arena);
             }
             else {
