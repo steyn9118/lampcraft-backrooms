@@ -30,7 +30,6 @@ public class Arena {
     Sound backgroundMusic;
     int backgroundMusicLenght; // 210 на нулевом уровне
     boolean debug;
-    // TODO катсцены и статистика для каждого уровня
 
 
     // СЛУЖЕБНЫЕ ПЕРЕМЕННЫЕ
@@ -107,7 +106,6 @@ public class Arena {
             }
 
             // Создание случайных координат на плоскости
-            // TODO работа с отрицательными координатами
             if (borders.get(0) < borders.get(1)){
                 x = borders.get(0) + random.nextInt(Math.abs(borders.get(1) - borders.get(0)));
             } else {
@@ -181,26 +179,27 @@ public class Arena {
 
         for (Player p : party.getPlayers()) {
 
-            players.add(p);
-            spectatingCounters.put(p, 0);
-            p.stopSound(SoundStop.all());
-            p.getInventory().clear();
-            p.setMetadata("br_arena", new FixedMetadataValue(plugin, this.id));
-            p.setMetadata("br_player_state", new FixedMetadataValue(plugin, "alive"));
-
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi kit gameStart " + p.getName());
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi usermeta " + p.getName() + " increment level1_games +1");
-            p.sendMessage(ChatColor.GREEN + "Вы присоединились к арене");
-
             // ПРОВЕРКА НА СПАВН ВСЕХ ИГРОКОВ В ОДНОМ МЕСТЕ
             if (party.getSpawnSettings()){
-                p.teleport(loc);
+                spawnPlayer(p, loc);
             } else {
-                p.teleport(getRandomPos(32, 0, borders, -1));
+                spawnPlayer(p, getRandomPos(32, 1, borders, -1));
             }
         }
 
         startGame();
+    }
+
+    // Спавн игрока
+    protected void spawnPlayer(Player p, Location pos){
+        players.add(p);
+        spectatingCounters.put(p, 0);
+        p.stopSound(SoundStop.all());
+        p.getInventory().clear();
+        p.setMetadata("br_arena", new FixedMetadataValue(plugin, this.id));
+        p.setMetadata("br_player_state", new FixedMetadataValue(plugin, "alive"));
+        p.sendMessage(ChatColor.GREEN + "Вы присоединились к арене");
+        p.teleport(pos);
     }
 
     // ВЫХОД С АРЕНЫ
@@ -241,8 +240,6 @@ public class Arena {
 
         p.sendMessage(ChatColor.GREEN + "Вы победили");
         players.remove(p);
-        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi toast " + p.getName() + " -t:challenge -icon:yellow_wool &aПокинуть первый уровень");
-        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi usermeta " + p.getName() + " increment level1_wins +1");
 
         if (players.size() > 0){
             becameGhost(p);
@@ -262,6 +259,7 @@ public class Arena {
         for (Player ghost : ghosts){
             ghost.showPlayer(plugin, p);
         }
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi kit spectate " + p.getName());
         p.setMetadata("br_player_state", new FixedMetadataValue(plugin, "ghost"));
         Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "team join monsters " + p.getName());
         p.sendTitle(ChatColor.RED + "Вы стали призраком", "Игроки и монстры не видят вас");
@@ -286,6 +284,7 @@ public class Arena {
                 @Override
                 public void run() {
                     Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi kit lobby " + p.getName());
+                    p.teleport(hubLocation);
                 }
             };
             afterDeathKit.runTaskLater(plugin, 2 * 20);
@@ -301,7 +300,6 @@ public class Arena {
                 if (!p.getMetadata("br_player_state").get(0).asString().equalsIgnoreCase("ghost")){
                     return;
                 }
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi kit spectate " + p.getName());
                 p.teleport(deathLoc);
                 becameGhost(p);
             }

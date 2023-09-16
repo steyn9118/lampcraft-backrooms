@@ -63,7 +63,5 @@ public class EntityRelatedListeners implements Listener {
                 return;
             }
         }
-
-
     }
 }

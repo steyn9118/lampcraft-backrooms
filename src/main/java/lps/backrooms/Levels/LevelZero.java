@@ -88,18 +88,37 @@ public class LevelZero extends Arena {
         for (Player player : monsters){
             player.hidePlayer(plugin, p);
         }
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi kit monster_item " + p.getName());
         super.becameGhost(p);
+    }
+
+
+    // Спавн игрока
+    @Override
+    protected void spawnPlayer(Player p, Location pos){
+        super.spawnPlayer(p, pos);
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi kit level0_start " + p.getName());
     }
 
     // Начало игры
     @Override
     public void startGame(){
+        for (Player p : players){
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi usermeta " + p.getName() + " increment level0_games +1");
+        }
         Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "kill @e[type=minecraft:husk" +
                 ",x=" + borders.get(0).toString() + ",dx=" + (borders.get(1) - borders.get(0)) +
                 ",z=" + borders.get(2).toString() + ",dz=" + (borders.get(3) - borders.get(2)) +
                 ",y=" + floorsY.get(0) + ",dy=5]");
         spawnThings();
         super.startGame();
+    }
+
+    @Override
+    public void win(Player p){
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi usermeta " + p.getName() + " increment level0_wins +1");
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi toast " + p.getName() + " -t:challenge -icon:yellow_wool &aПокинуть нулевой уровень");
+        super.win(p);
     }
 
     // Спавн хуйни

@@ -49,7 +49,6 @@ public class backroomsCommands implements CommandExecutor {
 
             }
 
-            // TODO поменять аргументы игрока и арены у br join в alias'e
             // Игрок, вызвавший команду
             Player argplayer = Bukkit.getPlayer(args[1]);
             if (argplayer == null){

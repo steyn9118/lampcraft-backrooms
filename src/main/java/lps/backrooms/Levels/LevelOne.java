@@ -37,6 +37,7 @@ public class LevelOne extends Arena{
     ArrayList<Entity> generators = new ArrayList<>();
     boolean isDark = false;
     boolean stopDarkness = false;
+    boolean allGensUp = false;
 
     // Получеие локальных переменных
     public void initFromCfgLocal(int initialMonsterAmount, int whrenchAmount, int methAmount, int gasStationsAmount, int generatorsAmount, int genFillingAmount, int lightsOutDuration, int generatorsRequired, Integer[] lightsFillPos1, Integer[] lightsFillPos2){
@@ -188,21 +189,34 @@ public class LevelOne extends Arena{
         // Заправка генератора
         p.getInventory().remove(Material.COAL);
         generator.setMetadata("time_left", new FixedMetadataValue(plugin, genFillingAmount));
+
+        // Подсчёт уже заправленных | TODO можно оптимизировать через добавление при заправке и ресет при темноте
         int gensLeft = generatorsRequired;
         for (Entity gener : generators){
             if (gener.getMetadata("time_left").get(0).asInt() > 1){
                 gensLeft--;
             }
         }
+
+        if (gensLeft == 0){
+            allGensUp = true;
+            for (Player player : players){
+                player.sendMessage(ChatColor.GREEN + "Все генераторы заправлены! Найди лифт как можно скорее");
+                return;
+            }
+        }
+
         for (Player player : players){
             if (player.equals(p)){
-                p.sendMessage("Генератор заправлен! Осталось заправить ещё " + gensLeft + "генераторов");
+                p.sendMessage("Генератор заправлен! Осталось заправить ещё " + ChatColor.YELLOW + gensLeft + ChatColor.WHITE + " генераторов");
             } else {
-                player.sendMessage("Игрок " + p.getName() + " заправил генератор! Осталось заправить ещё " + gensLeft + "генераторов");
+                player.playSound(player, Sound.BLOCK_BELL_USE, SoundCategory.MASTER, 1, 0.5f);
+                player.sendMessage("Игрок " + p.getName() + " заправил генератор! Осталось заправить ещё " + ChatColor.YELLOW + gensLeft + ChatColor.WHITE + " генераторов");
             }
         }
     }
 
+    // Попытка победить
     @Override
     public void win(Player p) {
 
@@ -215,19 +229,30 @@ public class LevelOne extends Arena{
         }
 
         if (currentGens.size() < generatorsRequired){
-            p.sendMessage(ChatColor.RED + "Чтобы победить, вы должны запустить ещё " + ChatColor.YELLOW + generatorsRequired + ChatColor.RED + " генераторов(-а)!");
+            p.sendMessage(ChatColor.RED + "Чтобы победить, вы должны запустить " + ChatColor.YELLOW + generatorsRequired + ChatColor.RED + " генераторов(-а)!");
             return;
         }
+
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi usermeta " + p.getName() + " increment level1_wins +1");
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi toast " + p.getName() + " -t:challenge -icon:white_concrete &7Покинуть первый уровень");
 
         super.win(p);
     }
 
-
+    // Спавн игрока
+    @Override
+    protected void spawnPlayer(Player p, Location pos){
+        super.spawnPlayer(p, pos);
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi kit level1_start " + p.getName());
+    }
 
     @Override
     public void startGame(){
 
         spawnThings();
+        for (Player p : players){
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi usermeta " + p.getName() + " increment level1_games +1");
+        }
 
         // Отсчёт времени для заправленных генераторов
         BukkitRunnable generatorsTicking = new BukkitRunnable() {
@@ -246,7 +271,7 @@ public class LevelOne extends Arena{
                 }
 
                 // Выключение
-                if (currentTime == maxTime || players.size() == 0){
+                if (currentTime == maxTime || players.size() == 0 || allGensUp){
                     this.cancel();
                 }
             }
@@ -263,6 +288,7 @@ public class LevelOne extends Arena{
         isDark = false;
         stopDarkness = false;
         generators.clear();
+        allGensUp = false;
 
         super.stopGame();
 
@@ -276,13 +302,19 @@ public class LevelOne extends Arena{
                 // Очистка инвенторя
                 player.sendTitle("", "Gulp!", 10, 20, 10);
                 player.getInventory().clear();
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi kit gameStart " + player.getName());
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi kit level1_start " + player.getName());
                 break;
 
             case (2):
                 // Убийство игрока
                 player.sendTitle("", "Bad trip", 10, 20, 10);
-                player.setHealth(0);
+                BukkitRunnable pillDeath = new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        player.setHealth(0);
+                    }
+                };
+                pillDeath.runTaskLater(plugin, 60);
                 break;
 
             case (3):
@@ -452,14 +484,21 @@ public class LevelOne extends Arena{
 
             case (8):
                 // Metal pipe
-                player.sendTitle("", "☠", 10, 20, 10);
+                player.sendTitle("", "☠ BRUH ☠", 10, 20, 10);
                 player.playSound(player, Sound.BLOCK_ANVIL_PLACE, SoundCategory.MASTER, 100, 1);
                 break;
 
             case (9):
                 // Теп безликой к игроку
                 player.sendTitle("", "Unintended consequences", 10, 20, 10);
-                facelings.get(0).teleport(player.getLocation());
+                Location location = player.getLocation();
+                BukkitRunnable facelingTeleportDelay = new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        facelings.get(0).teleport(location);
+                    }
+                };
+                facelingTeleportDelay.runTaskLater(plugin, 20);
                 break;
 
             case (10):

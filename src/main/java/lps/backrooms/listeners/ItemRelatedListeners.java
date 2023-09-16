@@ -11,8 +11,9 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerPickupItemEvent;
+import org.bukkit.scheduler.BukkitRunnable;
 
-@SuppressWarnings({"deprecation", "DataFlowIssue"})
+@SuppressWarnings({"deprecation"})
 public class ItemRelatedListeners implements Listener {
 
     // Предотвращает выбрасывание предметов игроками, которые находятся в лобби или являются призраками/монстрами
@@ -48,6 +49,7 @@ public class ItemRelatedListeners implements Listener {
             return;
         }
 
+        // Подключение к арене через меню
         if (event.getCurrentItem().getItemMeta() != null && event.getCurrentItem().getItemMeta().getLore() != null && event.getCurrentItem().getItemMeta().hasDisplayName()){
             if (event.getCurrentItem().getItemMeta().getLore().contains(ChatColor.GRAY + "Статус: " + ChatColor.GREEN + "Арена свободна")){
                 String id = event.getCurrentItem().getItemMeta().getDisplayName();
@@ -72,11 +74,18 @@ public class ItemRelatedListeners implements Listener {
         }
     }
 
+    // Закрытие меню
     @EventHandler
     public void menuCloseEvent(InventoryCloseEvent event){
         if (event.getView().getTitle().equals("Уровень O. Выбор арены") && event.getPlayer().getMetadata("br_player_state").get(0).asString().equalsIgnoreCase("null")){
-            // TODO Исправить
-            //Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi tpopos " + event.getPlayer().getName() + " 0.5 258.0 4.5 world 0 -180");
+            // Телепорт игрока обратно (из ямы), если была закрыта меню выбора арены первого уровня (без задержки - крашится)
+            BukkitRunnable teleportDelay = new BukkitRunnable() {
+                @Override
+                public void run() {
+                    event.getPlayer().teleport(new Location(Bukkit.getWorld("world"), 0.5, 258.0, 4.5, -180, 0));
+                }
+            };
+            teleportDelay.runTaskLater(Backrooms.getPlugin(), 5);
         }
     }
 
