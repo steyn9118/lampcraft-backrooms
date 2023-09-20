@@ -20,15 +20,21 @@ public class EntityRelatedListeners implements Listener {
     public void onEntityDamage(EntityDamageByEntityEvent event){
         if (event.getEntity() instanceof Player && !(event.getDamager() instanceof Player)){
             // Проигрывание звуков смерти
-            if (event.getDamager().getType().equals(EntityType.DROWNED)){
-                Player p = (Player) event.getEntity();
-                //
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute at " + p.getName() + " run playsound minecraft:entity.ender_dragon.growl master @a[distance=..20] ~ ~ ~ 50 1");
+            Player p = (Player) event.getEntity();
+            Entity damager = event.getDamager();
+            // Безликая
+            if (damager.getType().equals(EntityType.WITHER_SKELETON)){
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute at " + p.getName() + " run playsound minecraft:entity.phantom.flap master @a[distance=..20] ~ ~ ~ 100 1");
                 return;
             }
-            if (event.getDamager().getType().equals(EntityType.ZOMBIE)){
-                Player p = (Player) event.getEntity();
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute at " + p.getName() + " run playsound minecraft:entity.ender_dragon.growl master @a[distance=..20] ~ ~ ~ 50 1");
+            // Смайлер
+            if (damager.getType().equals(EntityType.ZOMBIE)){
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute at " + p.getName() + " run playsound minecraft:entity.phantom.hurt master @a[distance=..20] ~ ~ ~ 100 1");
+                return;
+            }
+            // Монстр нулевого уронвя
+            if (damager.getType().equals(EntityType.HUSK)){
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute at " + p.getName() + " run playsound minecraft:entity.ender_dragon.growl master @a[distance=..20] ~ ~ ~ 100 1");
                 return;
             }
             return;

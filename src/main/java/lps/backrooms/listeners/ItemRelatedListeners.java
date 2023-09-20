@@ -5,6 +5,7 @@ import lps.backrooms.Levels.Arena;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -22,6 +23,10 @@ public class ItemRelatedListeners implements Listener {
 
         if (event.getPlayer().hasPermission("br.bypass")){
             return;
+        }
+
+        if (event.getItemDrop().getItemStack().getType().equals(Material.COAL)){
+            event.setCancelled(true);
         }
 
         if (!event.getPlayer().getMetadata("br_player_state").get(0).asString().equalsIgnoreCase("alive")){

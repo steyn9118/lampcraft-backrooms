@@ -1,6 +1,7 @@
 package lps.backrooms.Levels;
 
 import lps.backrooms.blockfilling.BlockFillingRequest;
+import net.kyori.adventure.sound.SoundStop;
 import org.bukkit.*;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -88,7 +89,12 @@ public class LevelOne extends Arena{
         for (int I = 0; I < players.size() + initialMonsterAmount; I++){
             Location loc = getRandomPos(40, 1, borders, 1);
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "mm m spawn faceling 1 " + "world" + "," + loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ() + ",0,0");
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "team join monsters @e[type=minecraft:wither_skeleton]");
         }
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "effect give @e[type=minecraft:wither_skeleton" +
+                ",x=" + borders.get(0).toString() + ",dx=" + (borders.get(1) - borders.get(0)) +
+                ",z=" + borders.get(2).toString() + ",dz=" + (borders.get(3) - borders.get(2)) +
+                ",y=" + floorsY.get(0) + ",dy=5] minecraft:slowness 20 5 false");
 
         // Добавляем генераторы
         generators.addAll(Objects.requireNonNull(Bukkit.getWorld("world")).getNearbyEntities(boundingBox, (entity) -> entity.getType() == EntityType.PIG));
@@ -99,6 +105,8 @@ public class LevelOne extends Arena{
 
     // Темнота
     public void lightsOut(){
+
+        stopAmbient = true;
         isDark = true;
 
         // Выключение генераторов
@@ -108,8 +116,11 @@ public class LevelOne extends Arena{
 
         // Эффект слепоты и звук для игроков
         for (Player player : players){
-            player.playSound(player, Sound.ENTITY_ENDER_DRAGON_FLAP, 100, 1);
-            player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, lightsOutDuration*20, 1, false, false, false));
+            if (player.getPotionEffect(PotionEffectType.NIGHT_VISION) == null){
+                player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, lightsOutDuration*20, 1, false, false, false));
+            }
+            player.stopSound(SoundStop.all());
+            player.playSound(player, Sound.ENTITY_PHANTOM_AMBIENT, 100, 1);
         }
 
         // Выключение света
@@ -125,17 +136,16 @@ public class LevelOne extends Arena{
                 time += 1;
 
                 // Спавн Улыбающихся
-                if (time % 2 == 0){
-                    for (Player p : players){
-                        List<Integer> playerCords = new ArrayList<>();
-                        playerCords.add(p.getLocation().getBlockX() - 5);
-                        playerCords.add(p.getLocation().getBlockX() + 5);
-                        playerCords.add(p.getLocation().getBlockZ() - 5);
-                        playerCords.add(p.getLocation().getBlockZ() + 5);
-                        Location loc = getRandomPos(0, 0, playerCords, -1);
-                        if (loc != null){
-                            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "mm m spawn smiler 1 " + "world" + "," + loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ() + ",0,0");
-                        }
+                for (Player p : players){
+                    List<Integer> playerCords = new ArrayList<>(4);
+                    playerCords.add(p.getLocation().getBlockX() - 3);
+                    playerCords.add(p.getLocation().getBlockX() + 3);
+                    playerCords.add(p.getLocation().getBlockZ() - 3);
+                    playerCords.add(p.getLocation().getBlockZ() + 3);
+                    Location loc = getRandomPos(0, 0, playerCords, -1);
+                    if (loc != null || (loc.getBlockX() != p.getLocation().getBlockX() && loc.getBlockZ() != p.getLocation().getBlockZ())){
+                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "mm m spawn smiler 1 " + "world" + "," + loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ() + ",0,0");
+                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "team join monsters @e[type=minecraft:zombie]");
                     }
                 }
 
@@ -159,7 +169,10 @@ public class LevelOne extends Arena{
 
                     for (Player player : players){
                         player.removePotionEffect(PotionEffectType.BLINDNESS);
+                        player.playSound(player, Sound.ENTITY_PHANTOM_SWOOP, 100, 1);
                     }
+
+                    startAmbient();
                 }
             }
         };
@@ -168,7 +181,11 @@ public class LevelOne extends Arena{
 
     // Попытка заправить генератор
     public void generatorFill(Player p, Entity generator){
-        // Если идёт темнотта
+        if (!players.contains(p)){
+            return;
+        }
+
+        // Если идёт темнота
         if (isDark){
             p.sendMessage("Слишком темно! Я не могу заправить генератор...");
             return;
@@ -189,6 +206,8 @@ public class LevelOne extends Arena{
         // Заправка генератора
         p.getInventory().remove(Material.COAL);
         generator.setMetadata("time_left", new FixedMetadataValue(plugin, genFillingAmount));
+        p.playSound(p.getLocation(), Sound.ENTITY_PIG_STEP, SoundCategory.MASTER, 1, 1);
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute at " + p.getName() + " run playsound minecraft:entity.bat.hurt master @a[distance=..20] ~ ~ ~ 100 1");
 
         // Подсчёт уже заправленных | TODO можно оптимизировать через добавление при заправке и ресет при темноте
         int gensLeft = generatorsRequired;
@@ -198,7 +217,7 @@ public class LevelOne extends Arena{
             }
         }
 
-        if (gensLeft == 0){
+        if (gensLeft <= 0){
             allGensUp = true;
             for (Player player : players){
                 player.sendMessage(ChatColor.GREEN + "Все генераторы заправлены! Найди лифт как можно скорее");
@@ -206,10 +225,19 @@ public class LevelOne extends Arena{
             }
         }
 
+        for (Player ghost : ghosts){
+            ghost.playSound(ghost, Sound.BLOCK_BELL_USE, SoundCategory.MASTER, 1, 0.5f);
+            ghost.playSound(p.getLocation(), Sound.ENTITY_PIG_AMBIENT, SoundCategory.MASTER, 1, 1);
+            ghost.sendMessage("");
+            ghost.sendMessage("Игрок " + p.getName() + " заправил генератор! Осталось заправить ещё " + ChatColor.YELLOW + gensLeft + ChatColor.WHITE + " генераторов");
+        }
+
         for (Player player : players){
             if (player.equals(p)){
+                p.sendMessage("");
                 p.sendMessage("Генератор заправлен! Осталось заправить ещё " + ChatColor.YELLOW + gensLeft + ChatColor.WHITE + " генераторов");
             } else {
+                player.sendMessage("");
                 player.playSound(player, Sound.BLOCK_BELL_USE, SoundCategory.MASTER, 1, 0.5f);
                 player.sendMessage("Игрок " + p.getName() + " заправил генератор! Осталось заправить ещё " + ChatColor.YELLOW + gensLeft + ChatColor.WHITE + " генераторов");
             }
@@ -233,9 +261,6 @@ public class LevelOne extends Arena{
             return;
         }
 
-        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi usermeta " + p.getName() + " increment level1_wins +1");
-        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi toast " + p.getName() + " -t:challenge -icon:white_concrete &7Покинуть первый уровень");
-
         super.win(p);
     }
 
@@ -256,8 +281,13 @@ public class LevelOne extends Arena{
 
         // Отсчёт времени для заправленных генераторов
         BukkitRunnable generatorsTicking = new BukkitRunnable() {
+
+            int time = 0;
+
             @Override
             public void run() {
+
+                time++;
 
                 // Работа с генераторами
                 for (Entity generator : generators){
@@ -268,6 +298,17 @@ public class LevelOne extends Arena{
                         break;
                     }
                     generator.setMetadata("time_left", new FixedMetadataValue(plugin, generator.getMetadata("time_left").get(0).asInt() - 1));
+                }
+
+                if (time == 4){
+                    time = 0;
+                    for (Entity generator : generators){
+                        if (generator.getMetadata("time_left").get(0).asInt() <= 0){
+                            continue;
+                        }
+                        Location loc = generator.getLocation();
+                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "playsound minecraft:entity.pig.ambient master @a " + loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ() + " 1 1");
+                    }
                 }
 
                 // Выключение
@@ -295,7 +336,24 @@ public class LevelOne extends Arena{
     }
 
     public void methUse(Player player){
-        player.getInventory().removeItem(new ItemStack(Material.PINK_DYE, 1));
+        player.playSound(player, Sound.ENTITY_PHANTOM_DEATH, SoundCategory.MASTER, 100, 1);
+
+        // Забираем используемый предмет
+        for (int i = 0; i < 35; i++){
+            if (player.getInventory().getItem(i) == null){
+                continue;
+            }
+            if (!player.getInventory().getItem(i).getType().equals(Material.PINK_DYE)){
+                continue;
+            }
+            if (player.getInventory().getItem(i).getAmount() > 1){
+                player.getInventory().getItem(i).setAmount(player.getInventory().getItem(i).getAmount() - 1);
+            } else {
+                player.getInventory().removeItem(player.getInventory().getItem(i));
+            }
+            break;
+        }
+
         int chance = random.nextInt(1, 12);
         switch (chance){
             case (1):
@@ -307,14 +365,18 @@ public class LevelOne extends Arena{
 
             case (2):
                 // Убийство игрока
-                player.sendTitle("", "Bad trip", 10, 20, 10);
+                player.sendTitle("", "Bad trip ☹", 10, 20, 10);
+                player.addPotionEffect(new PotionEffect(PotionEffectType.CONFUSION, 4, 1));
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute at " + player.getName() + " run playsound minecraft:entity.bat.death master @a[distance=..10] ~ ~ ~ 1 1");
                 BukkitRunnable pillDeath = new BukkitRunnable() {
                     @Override
                     public void run() {
-                        player.setHealth(0);
+                        if (!player.hasPotionEffect(PotionEffectType.DAMAGE_RESISTANCE)){
+                            player.setHealth(0);
+                        }
                     }
                 };
-                pillDeath.runTaskLater(plugin, 60);
+                pillDeath.runTaskLater(plugin, 70);
                 break;
 
             case (3):
@@ -354,21 +416,21 @@ public class LevelOne extends Arena{
                 // Скорость + неуязвимость
                 player.sendTitle("", "POWER PILL", 10, 20, 10);
                 player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 10*20, 6, false, false, false));
-                player.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, 10*20, 99, false, false, false));
+                player.addPotionEffect(new PotionEffect(PotionEffectType.DAMAGE_RESISTANCE, 10*20, 99, false, false, false));
                 break;
 
             case (9):
                 // Постоянное увелечение скорости
                 player.sendTitle("", "Speed up", 10, 20, 10);
                 if (player.getPotionEffect(PotionEffectType.SPEED) == null){
-                    player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 9999*20, 1, false, false, false));
+                    player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 9999*20, 0, false, false, false));
                     break;
                 }
                 switch (player.getPotionEffect(PotionEffectType.SPEED).getAmplifier()){
                     case (1):
-                        player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 9999*20, 2, false, false, false));
+                        player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 9999*20, 1, false, false, false));
                     case (2):
-                        player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 9999*20, 3, false, false, false));
+                        player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 9999*20, 2, false, false, false));
                 }
                 break;
 
@@ -376,14 +438,14 @@ public class LevelOne extends Arena{
                 // Постоянное замедление
                 player.sendTitle("", "Speed down", 10, 20, 10);
                 if (player.getPotionEffect(PotionEffectType.SLOW) == null){
-                    player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 9999*20, 1, false, false, false));
+                    player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 9999*20, 0, false, false, false));
                     break;
                 }
                 switch (player.getPotionEffect(PotionEffectType.SLOW).getAmplifier()){
                     case (1):
-                        player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 9999*20, 2, false, false, false));
+                        player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 9999*20, 1, false, false, false));
                     case (2):
-                        player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 9999*20, 3, false, false, false));
+                        player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 9999*20, 2, false, false, false));
                 }
                 break;
 
@@ -414,9 +476,23 @@ public class LevelOne extends Arena{
     }
 
     public void wrenchUse(Player player){
+        player.playSound(player, Sound.ENTITY_PHANTOM_BITE, SoundCategory.MASTER, 100, 1);
+
+        // забираем используемый предмет
+        for (int i = 0; i < 35; i++){
+            if (!player.getInventory().getItem(i).getType().equals(Material.STICK)){
+                continue;
+            }
+            if (player.getInventory().getItem(i).getAmount() > 1){
+                player.getInventory().getItem(i).setAmount(player.getInventory().getItem(i).getAmount() - 1);
+            } else {
+                player.getInventory().removeItem(player.getInventory().getItem(i));
+            }
+            break;
+        }
         int chance = random.nextInt(1, 12);
         player.getInventory().removeItem(new ItemStack(Material.STICK, 1));
-        List<Entity> facelings = (List<Entity>) Bukkit.getWorld("world").getNearbyEntities(boundingBox, (entity) -> entity.getType() == EntityType.DROWNED);
+        List<Entity> facelings = (List<Entity>) Bukkit.getWorld("world").getNearbyEntities(boundingBox, (entity) -> entity.getType() == EntityType.WITHER_SKELETON);
         switch (chance){
             case (1):
                 // Подсвет генеров

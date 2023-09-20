@@ -116,8 +116,6 @@ public class LevelZero extends Arena {
 
     @Override
     public void win(Player p){
-        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi usermeta " + p.getName() + " increment level0_wins +1");
-        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi toast " + p.getName() + " -t:challenge -icon:yellow_wool &aПокинуть нулевой уровень");
         super.win(p);
     }
 

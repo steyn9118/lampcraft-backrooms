@@ -38,6 +38,7 @@ public class Arena {
     boolean gameActive = false;
     protected Random random = new Random();
     int[] previousLocationXZ = new int[2];
+    boolean stopAmbient = false;
 
 
     // ГРУППЫ ИГРОКОВ
@@ -99,7 +100,7 @@ public class Arena {
             // Выбор высоты пола
             if (floorsY.size() != 1) {
                 if (requiredFloor == -1){
-                    floorY = floorsY.get(random.nextInt(floorsY.size()-1));
+                    floorY = floorsY.get(random.nextInt(0, floorsY.size()));
                 } else {
                     floorY = floorsY.get(requiredFloor - 1);
                 }
@@ -223,8 +224,19 @@ public class Arena {
         p.setMetadata("br_arena", new FixedMetadataValue(plugin, "null"));
         p.setMetadata("br_player_state", new FixedMetadataValue(plugin, "null"));
         p.getInventory().clear();
-        p.teleport(hubLocation);
-        p.stopSound(SoundStop.all());
+        p.stopSound(backgroundMusic, SoundCategory.AMBIENT);
+        p.playSound(p, Sound.MUSIC_END, SoundCategory.MUSIC, 100, 1);
+        for (PotionEffect effect : p.getActivePotionEffects()){
+            p.removePotionEffect(effect.getType());
+        }
+        BukkitRunnable imCrying = new BukkitRunnable() {
+            @Override
+            public void run() {
+                p.teleport(hubLocation);
+
+            }
+        };
+        imCrying.runTaskLater(plugin, 30);
         Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi kit lobby " + p.getName());
     }
 
@@ -238,8 +250,27 @@ public class Arena {
             return;
         }
 
+        for (Player player : players){
+            if (p.equals(player)){
+                continue;
+            }
+            player.sendMessage(ChatColor.GREEN + "Игрок " + p.getName() + " сбежал");
+        }
+        for (Player ghost : ghosts){
+            ghost.sendMessage(ChatColor.GREEN + "Игрок " + p.getName() + " сбежал");
+        }
+
         p.sendMessage(ChatColor.GREEN + "Вы победили");
         players.remove(p);
+        p.getInventory().clear();
+
+        if (this instanceof LevelZero){
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi usermeta " + p.getName() + " increment level0_wins +1");
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi toast " + p.getName() + " -t:challenge -icon:yellow_wool &aПокинуть нулевой уровень");
+        } else if (this instanceof  LevelOne) {
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi usermeta " + p.getName() + " increment level1_wins +1");
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi toast " + p.getName() + " -t:challenge -icon:white_concrete &7Покинуть первый уровень");
+        }
 
         if (players.size() > 0){
             becameGhost(p);
@@ -274,37 +305,27 @@ public class Arena {
             System.out.println("Игрок умер");
         }
 
+        if (!players.contains(p)){
+            return;
+        }
+
         p.sendMessage(ChatColor.RED + "Вы проиграли");
         players.remove(p);
+        p.getInventory().clear();
+
+        for (Player player : players){
+            player.sendMessage(ChatColor.RED + "Игрок " + p.getName() + " умер");
+        }
 
         // ЕСЛИ ИГРОК БЫЛ ПОСЛЕДНИМ
         if (players.size() == 0){
             leave(p);
-            BukkitRunnable afterDeathKit = new BukkitRunnable() {
-                @Override
-                public void run() {
-                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi kit lobby " + p.getName());
-                    p.teleport(hubLocation);
-                }
-            };
-            afterDeathKit.runTaskLater(plugin, 2 * 20);
+            p.sendTitle(ChatColor.RED + "Вы умерли!", "☠");
             return;
         }
 
         p.setMetadata("br_player_state", new FixedMetadataValue(plugin, "ghost"));
-        // ТЕЛЕПОРТАЦИЯ НА МЕСТО СМЕРТИ
-        Location deathLoc = p.getLocation();
-        BukkitRunnable afterDeathTeleport = new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (!p.getMetadata("br_player_state").get(0).asString().equalsIgnoreCase("ghost")){
-                    return;
-                }
-                p.teleport(deathLoc);
-                becameGhost(p);
-            }
-        };
-        afterDeathTeleport.runTaskLater(plugin, 2 * 20);
+        becameGhost(p);
     }
 
     // НАБЛЮДЕНИЕ ЗА ИГРОКАМИ
@@ -332,6 +353,7 @@ public class Arena {
         }
 
         gameActive = true;
+        startAmbient();
 
         // НАЧАЛО ОТСЧЁТА
         currentTime = -1;
@@ -341,13 +363,6 @@ public class Arena {
 
                 currentTime += 1;
 
-                // ЭМБИЕНТ
-                if (currentTime % backgroundMusicLenght == 0 || currentTime == 0){
-                    for (Player p : players){
-                        p.playSound(p.getLocation(), backgroundMusic, SoundCategory.AMBIENT, 100f, 1f);
-                    }
-                }
-
                 // ПРОВЕРКА НА ЗАВЕРШЕНИЕ ИГРЫ
                 if (currentTime == maxTime || players.size() == 0){
                     stopGame();
@@ -356,6 +371,33 @@ public class Arena {
             }
         };
         game.runTaskTimer(plugin, 0, 20);
+    }
+
+    // ЭМБИЕНТ
+    protected void startAmbient(){
+        BukkitRunnable ambientTimer = new BukkitRunnable() {
+            int time = 0;
+            @Override
+            public void run() {
+                // Остановка
+                if (stopAmbient || currentTime == maxTime || players.size() == 0){
+                    stopAmbient = false;
+                    this.cancel();
+                }
+
+                // Таймер эмбиента
+                if (time % backgroundMusicLenght == 0 || time == 0){
+                    for (Player p : players){
+                        p.playSound(p, backgroundMusic, SoundCategory.AMBIENT, 100f, 1f);
+                    }
+                    for (Player ghost : ghosts){
+                        ghost.playSound(ghost, backgroundMusic, SoundCategory.AMBIENT, 100f, 1f);
+                    }
+                }
+                time++;
+            }
+        };
+        ambientTimer.runTaskTimer(plugin, 0, 20);
     }
 
     // КОНЕЦ ИГРЫ
@@ -373,6 +415,9 @@ public class Arena {
             int psize = players.size();
             for (int i = 0; i < psize; i++){
                 leave(players.get(0));
+                if (debug){
+                    System.out.println("Игрок кикнут");
+                }
             }
         }
 
@@ -381,6 +426,9 @@ public class Arena {
             int gsize = ghosts.size();
             for (int i = 0; i < gsize; i++){
                 leave(ghosts.get(0));
+                if (debug){
+                    System.out.println("Призрак кикнут");
+                }
             }
         }
 
