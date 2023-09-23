@@ -11,7 +11,6 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
-import java.math.*;
 
 /*
 Абстрактный класс, используется только как родитель при наследовании классами уровней
@@ -37,10 +36,9 @@ public class Arena {
     protected final Backrooms plugin = Backrooms.getPlugin();
     public int currentTime;
     boolean gameActive = false;
-    Random random = new Random();
+    protected Random random = new Random();
     int[] previousLocationXZ = new int[2];
-    // TODO кэш случайных локаций (низкий приоритет)
-    //List<Location> randomLocsCache = new ArrayList<>();
+    boolean stopAmbient = false;
 
 
     // ГРУППЫ ИГРОКОВ
@@ -57,7 +55,7 @@ public class Arena {
     public ArrayList<Player> getPlayers(){
         return this.players;
     }
-
+    public int getMaxPlayers() {return maxPlayers;}
 
     // ОбЩИЙ МЕТОД ИНИЦИАЛИЗАЦИИ ИЗ КОНФИГА
     public void initFromCfgAbstract(String id, int maxPlayers, int maxTime, List<Integer> borders, List<Integer> floorsY, Location hubLocation, Sound music, int backgroundMusicLenght, boolean debug){
@@ -78,14 +76,7 @@ public class Arena {
     }
 
     // ПОЛУЧЕНИЕ СЛУЧАЙНОЙ ПОЗИЦИИ
-    protected Location getRandomPos(int minDistanceFromPrev, int emptyBlocksAroundRadius, boolean clearCache){
-
-        /*
-        Кэш локаций в данный момент не используется
-        if (clearCache){
-            randomLocsCache.clear();
-        }
-        */
+    protected Location getRandomPos(int minDistanceFromPrev, int emptyBlocksAroundRadius, List<Integer> borders, int requiredFloor){
 
         if (debug){
             System.out.println("Поиск случайной позиции");
@@ -95,21 +86,43 @@ public class Arena {
         int z;
         boolean repeat;
         int floorY = floorsY.get(0);
+        int recursionLimit = 999;
+        int currentIteration = 0;
 
         do {
 
-            /*
-            // ПРОВЕРКА ДЛЯ УРОВНЕЙ С НЕСКОЛЬКИМИ ЭТАЖАМИ
-            // НА ДАННЫЙ МОМЕНТ НЕ ЗАКОНЧЕНА, ТАК КАК НЕ ИСПОЛЬЗУЕТСЯ
-
-            if (floorsY.size() != 1) {
-                floorY = floorsY.get(random.nextInt(floorsY.size()-1));
+            if (currentIteration == recursionLimit){
+                return null;
             }
-            */
 
-            x = borders.get(0) + random.nextInt(borders.get(1) - borders.get(0));
-            z = borders.get(2) + random.nextInt(borders.get(3) - borders.get(2));
+            currentIteration++;
 
+            // Выбор высоты пола
+            if (floorsY.size() != 1) {
+                if (requiredFloor == -1){
+                    floorY = floorsY.get(random.nextInt(0, floorsY.size()));
+                } else {
+                    floorY = floorsY.get(requiredFloor - 1);
+                }
+            }
+
+            // Создание случайных координат на плоскости
+            if (borders.get(0) < borders.get(1)){
+                x = borders.get(0) + random.nextInt(Math.abs(borders.get(1) - borders.get(0)));
+            } else {
+                x = borders.get(1) + random.nextInt(Math.abs(borders.get(1) - borders.get(0)));
+            }
+
+            if (borders.get(2) < borders.get(3)){
+                z = borders.get(2) + random.nextInt(Math.abs(borders.get(3) - borders.get(2)));
+            } else {
+                z = borders.get(3) + random.nextInt(Math.abs(borders.get(3) - borders.get(2)));
+            }
+
+            // НЕ ПУСТОЙ БЛОК НА ЭТИХ КООРДИНАТАХ
+            if (!(new Location(Bukkit.getWorld("world"),  x, floorY, z).getBlock().isEmpty())){
+                continue;
+            }
 
             // ПРОВЕРКА НА РАССТОЯНИЕ ОТ ПРЕДЫДУЩЕГО СПАВНА
             if(minDistanceFromPrev > 0){
@@ -119,13 +132,6 @@ public class Arena {
                     }
                 }
             }
-
-
-            // НЕ ПУСТОЙ БЛОК НА ЭТИХ КООРДИНАТАХ
-            if (!(new Location(Bukkit.getWorld("world"),  x, floorY, z).getBlock().isEmpty())){
-                    continue;
-            }
-
 
             // ПРОВЕРКА НА ДОСТАТОЧНОЕ КОЛИЧЕСТВА ПУСТЫХ БЛОКОВ ВОКРУГ
             if (emptyBlocksAroundRadius > 0){
@@ -139,7 +145,9 @@ public class Arena {
                     }
                 }
 
-                if (repeat){continue;}
+                if (repeat){
+                    continue;
+                }
 
             }
 
@@ -168,29 +176,31 @@ public class Arena {
         }
 
         // СПАВН ИГРОКОВ
-        Location loc = getRandomPos(32, 0, false);
+        Location loc = getRandomPos(32, 1, borders, -1);
 
         for (Player p : party.getPlayers()) {
 
-            players.add(p);
-            spectatingCounters.put(p, 0);
-            p.getInventory().clear();
-            p.setMetadata("br_arena", new FixedMetadataValue(plugin, this.id));
-            p.setMetadata("br_player_state", new FixedMetadataValue(plugin, "alive"));
-
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi kit gameStart " + p.getName());
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi usermeta " + p.getName() + " increment games +1");
-            p.sendMessage(ChatColor.GREEN + "Вы присоединились к арене");
-
             // ПРОВЕРКА НА СПАВН ВСЕХ ИГРОКОВ В ОДНОМ МЕСТЕ
             if (party.getSpawnSettings()){
-                p.teleport(loc);
+                spawnPlayer(p, loc);
             } else {
-                p.teleport(getRandomPos(32, 0, false));
+                spawnPlayer(p, getRandomPos(32, 1, borders, -1));
             }
         }
 
         startGame();
+    }
+
+    // Спавн игрока
+    protected void spawnPlayer(Player p, Location pos){
+        players.add(p);
+        spectatingCounters.put(p, 0);
+        p.stopSound(SoundStop.all());
+        p.getInventory().clear();
+        p.setMetadata("br_arena", new FixedMetadataValue(plugin, this.id));
+        p.setMetadata("br_player_state", new FixedMetadataValue(plugin, "alive"));
+        p.sendMessage(ChatColor.GREEN + "Вы присоединились к арене");
+        p.teleport(pos);
     }
 
     // ВЫХОД С АРЕНЫ
@@ -202,8 +212,14 @@ public class Arena {
         // Если ливает живой игрок
         if (p.getMetadata("br_player_state").get(0).asString().equalsIgnoreCase("alive")){
             players.remove(p);
-            p.sendMessage(ChatColor.WHITE + "Вы покинули арену");
         }
+
+        // Если ливает призрак
+        if (p.getMetadata("br_player_state").get(0).asString().equalsIgnoreCase("ghost")){
+            ghosts.remove(p);
+        }
+
+        p.sendMessage(ChatColor.WHITE + "Вы покинули арену");
 
         for (Player player : Bukkit.getOnlinePlayers()){
             player.showPlayer(plugin, p);
@@ -214,8 +230,19 @@ public class Arena {
         p.setMetadata("br_arena", new FixedMetadataValue(plugin, "null"));
         p.setMetadata("br_player_state", new FixedMetadataValue(plugin, "null"));
         p.getInventory().clear();
-        p.teleport(hubLocation);
-        p.stopSound(SoundStop.all());
+        p.stopSound(backgroundMusic, SoundCategory.AMBIENT);
+        p.playSound(p, Sound.MUSIC_END, SoundCategory.MUSIC, 5, 1);
+        for (PotionEffect effect : p.getActivePotionEffects()){
+            p.removePotionEffect(effect.getType());
+        }
+        BukkitRunnable imCrying = new BukkitRunnable() {
+            @Override
+            public void run() {
+                p.teleport(hubLocation);
+
+            }
+        };
+        imCrying.runTaskLater(plugin, 30);
         Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi kit lobby " + p.getName());
     }
 
@@ -229,10 +256,27 @@ public class Arena {
             return;
         }
 
+        for (Player player : players){
+            if (p.equals(player)){
+                continue;
+            }
+            player.sendMessage(ChatColor.GREEN + "Игрок " + p.getName() + " сбежал");
+        }
+        for (Player ghost : ghosts){
+            ghost.sendMessage(ChatColor.GREEN + "Игрок " + p.getName() + " сбежал");
+        }
+
         p.sendMessage(ChatColor.GREEN + "Вы победили");
         players.remove(p);
-        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi toast " + p.getName() + " -t:challenge -icon:yellow_wool &aПокинуть первый уровень");
-        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi usermeta " + p.getName() + " increment wins +1");
+        p.getInventory().clear();
+
+        if (this instanceof LevelZero){
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi usermeta " + p.getName() + " increment level0_wins +1");
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi toast " + p.getName() + " -t:challenge -icon:yellow_wool &aПокинуть нулевой уровень");
+        } else if (this instanceof  LevelOne) {
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi usermeta " + p.getName() + " increment level1_wins +1");
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi toast " + p.getName() + " -t:challenge -icon:white_concrete &7Покинуть первый уровень");
+        }
 
         if (players.size() > 0){
             becameGhost(p);
@@ -252,8 +296,23 @@ public class Arena {
         for (Player ghost : ghosts){
             ghost.showPlayer(plugin, p);
         }
+
+        // Переключение режима чтобы сбросить таргет мобов
+        Location loc = p.getLocation();
+        p.setGameMode(GameMode.SPECTATOR);
+        BukkitRunnable deathtp = new BukkitRunnable() {
+            @Override
+            public void run() {
+                p.setGameMode(GameMode.ADVENTURE);
+                if (gameActive){
+                    p.teleport(loc);
+                }
+            }
+        };
+        deathtp.runTaskLater(plugin, 20);
+
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi kit spectate " + p.getName());
         p.setMetadata("br_player_state", new FixedMetadataValue(plugin, "ghost"));
-        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "team join monsters " + p.getName());
         p.sendTitle(ChatColor.RED + "Вы стали призраком", "Игроки и монстры не видят вас");
         p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 9999*20, 1, false, false, false));
         ghosts.add(p);
@@ -266,46 +325,50 @@ public class Arena {
             System.out.println("Игрок умер");
         }
 
+        if (!players.contains(p)){
+            return;
+        }
+
         p.sendMessage(ChatColor.RED + "Вы проиграли");
         players.remove(p);
+        p.getInventory().clear();
+
+        for (Player player : players){
+            player.sendMessage(ChatColor.RED + "Игрок " + p.getName() + " умер");
+        }
+        for (Player ghost : ghosts){
+            ghost.sendMessage(ChatColor.RED + "Игрок " + p.getName() + " умер");
+        }
 
         // ЕСЛИ ИГРОК БЫЛ ПОСЛЕДНИМ
         if (players.size() == 0){
+            leave(p);
+            p.sendTitle(ChatColor.RED + "Вы умерли!", "☠");
             return;
         }
 
         p.setMetadata("br_player_state", new FixedMetadataValue(plugin, "ghost"));
-        // ТЕЛЕПОРТАЦИЯ НА МЕСТО СМЕРТИ
-        Location deathLoc = p.getLocation();
-        BukkitRunnable afterDeathTeleport = new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (!p.getMetadata("br_player_state").get(0).asString().equalsIgnoreCase("ghost")){
-                    return;
-                }
-                p.teleport(deathLoc);
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi kit spectate " + p.getName());
-                becameGhost(p);
-            }
-        };
-        afterDeathTeleport.runTaskLater(plugin, 2 * 20);
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "team join monsters " + p.getName());
+        becameGhost(p);
     }
 
     // НАБЛЮДЕНИЕ ЗА ИГРОКАМИ
     public void spectate(Player p){
-
-        // ЕСЛИ ПОПАДАЕТ НА САМОГО СЕБЯ
-        if (players.get(spectatingCounters.get(p)).equals(p)){
-            spectatingCounters.put(p, spectatingCounters.get(p) + 1);
-        }
 
         // ЕСЛИ ВЫХОДИТ ЗА ГРАНИЦУ КОЛИЧЕСТВА ИГРОКОВ
         if (spectatingCounters.get(p) >= players.size()){
             spectatingCounters.put(p, 0);
         }
 
+        // ЕСЛИ ПОПАДАЕТ НА САМОГО СЕБЯ
+        if (players.get(spectatingCounters.get(p)).equals(p)){
+            spectatingCounters.put(p, spectatingCounters.get(p) + 1);
+        }
+
         p.teleport(players.get(spectatingCounters.get(p)));
         p.sendActionBar(ChatColor.GREEN + "Вы наблюдаете за игроком: " + ChatColor.YELLOW + players.get(spectatingCounters.get(p)).getName());
+        spectatingCounters.put(p, spectatingCounters.get(p) + 1);
+
     }
 
     // Старт игры
@@ -316,6 +379,7 @@ public class Arena {
         }
 
         gameActive = true;
+        startAmbient();
 
         // НАЧАЛО ОТСЧЁТА
         currentTime = -1;
@@ -325,21 +389,44 @@ public class Arena {
 
                 currentTime += 1;
 
-                // ЭМБИЕНТ
-                if (currentTime % backgroundMusicLenght == 0 || currentTime == 0){
-                    for (Player p : players){
-                        p.playSound(p.getLocation(), backgroundMusic, SoundCategory.AMBIENT, 100f, 1f);
-                    }
-                }
-
                 // ПРОВЕРКА НА ЗАВЕРШЕНИЕ ИГРЫ
                 if (currentTime == maxTime || players.size() == 0){
                     stopGame();
                     this.cancel();
+                    if (debug){
+                        System.out.println("Конец игры");
+                    }
                 }
             }
         };
         game.runTaskTimer(plugin, 0, 20);
+    }
+
+    // ЭМБИЕНТ
+    protected void startAmbient(){
+        BukkitRunnable ambientTimer = new BukkitRunnable() {
+            int time = 0;
+            @Override
+            public void run() {
+                // Остановка
+                if (stopAmbient || currentTime == maxTime || players.size() == 0){
+                    stopAmbient = false;
+                    this.cancel();
+                }
+
+                // Таймер эмбиента
+                if (time % backgroundMusicLenght == 0 || time == 0){
+                    for (Player p : players){
+                        p.playSound(p, backgroundMusic, SoundCategory.AMBIENT, 20f, 1f);
+                    }
+                    for (Player ghost : ghosts){
+                        ghost.playSound(ghost, backgroundMusic, SoundCategory.AMBIENT, 20f, 1f);
+                    }
+                }
+                time++;
+            }
+        };
+        ambientTimer.runTaskTimer(plugin, 0, 20);
     }
 
     // КОНЕЦ ИГРЫ
@@ -355,7 +442,13 @@ public class Arena {
         // КИК ОСТАВШИХСЯ ИГРОКОВ
         if (players.size() > 0){
             int psize = players.size();
+            if (debug) {
+                System.out.println(players);
+            }
             for (int i = 0; i < psize; i++){
+                if (debug){
+                    System.out.println("Игрок " + players.get(0).getName() + " кикнут");
+                }
                 leave(players.get(0));
             }
         }
@@ -363,7 +456,13 @@ public class Arena {
         // КИК ОСТАВШИХСЯ НАБЛЮДАТЕЛЕЙ
         if (ghosts.size() > 0){
             int gsize = ghosts.size();
-            for (int i = 0; i < gsize; i++){
+            if (debug) {
+                System.out.println(ghosts);
+            }
+            for (int i = 0; i < gsize; i++) {
+                if (debug) {
+                    System.out.println("Призрак " + ghosts.get(0).getName() + " кикнут");
+                }
                 leave(ghosts.get(0));
             }
         }

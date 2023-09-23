@@ -10,6 +10,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
+@SuppressWarnings("DataFlowIssue")
 public class adminCommands implements CommandExecutor {
 
     @Override
@@ -30,8 +31,12 @@ public class adminCommands implements CommandExecutor {
             }
 
             if (args[0].equalsIgnoreCase("help")){
-                p.sendMessage("Usage - /backrooms <>");
-                p.sendMessage("");
+                p.sendMessage("/bradmin reload");
+                p.sendMessage("/bradmin parties");
+                p.sendMessage("/bradmin arenas");
+                p.sendMessage("/bradmin debug arena <id>");
+                p.sendMessage("/bradmin debug player <name>");
+                p.sendMessage("/bradmin debug party  <leader>");
                 return false;
             }
 
@@ -54,8 +59,8 @@ public class adminCommands implements CommandExecutor {
                     for (Arena arena : Backrooms.getPlugin().getArenas()){
                         if (arena.getId().equalsIgnoreCase(args[2])){
                             p.sendMessage("Игроки: " + arena.getPlayers().toString());
-                            p.sendMessage("Активна: " + arena.isGameActive() + "");
-                            p.sendMessage("Время: " + arena.currentTime + "");
+                            p.sendMessage("Активна: " + arena.isGameActive());
+                            p.sendMessage("Время: " + arena.currentTime);
                         }
                     }
                     return false;
@@ -74,8 +79,6 @@ public class adminCommands implements CommandExecutor {
                             p.sendMessage("Игроки: " + party.getPlayers());
                         }
                     }
-
-
                     return false;
                 }
 

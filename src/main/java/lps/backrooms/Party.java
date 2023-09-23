@@ -106,6 +106,7 @@ public class Party {
         if (!partyLeader.equals(p)){
             players.remove(p);
             p.setMetadata("br_party", new FixedMetadataValue(Backrooms.getPlugin(), "null"));
+            p.sendMessage(ChatColor.RED + "Вы покинули пати " + partyLeader);
             for (Player player : players){
                 player.sendMessage(p.getName() + "" + ChatColor.YELLOW + " покинул пати");
             }
