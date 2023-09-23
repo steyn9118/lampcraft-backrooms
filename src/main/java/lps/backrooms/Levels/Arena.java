@@ -212,8 +212,14 @@ public class Arena {
         // Если ливает живой игрок
         if (p.getMetadata("br_player_state").get(0).asString().equalsIgnoreCase("alive")){
             players.remove(p);
-            p.sendMessage(ChatColor.WHITE + "Вы покинули арену");
         }
+
+        // Если ливает призрак
+        if (p.getMetadata("br_player_state").get(0).asString().equalsIgnoreCase("ghost")){
+            ghosts.remove(p);
+        }
+
+        p.sendMessage(ChatColor.WHITE + "Вы покинули арену");
 
         for (Player player : Bukkit.getOnlinePlayers()){
             player.showPlayer(plugin, p);
@@ -225,7 +231,7 @@ public class Arena {
         p.setMetadata("br_player_state", new FixedMetadataValue(plugin, "null"));
         p.getInventory().clear();
         p.stopSound(backgroundMusic, SoundCategory.AMBIENT);
-        p.playSound(p, Sound.MUSIC_END, SoundCategory.MUSIC, 100, 1);
+        p.playSound(p, Sound.MUSIC_END, SoundCategory.MUSIC, 5, 1);
         for (PotionEffect effect : p.getActivePotionEffects()){
             p.removePotionEffect(effect.getType());
         }
@@ -290,9 +296,23 @@ public class Arena {
         for (Player ghost : ghosts){
             ghost.showPlayer(plugin, p);
         }
+
+        // Переключение режима чтобы сбросить таргет мобов
+        Location loc = p.getLocation();
+        p.setGameMode(GameMode.SPECTATOR);
+        BukkitRunnable deathtp = new BukkitRunnable() {
+            @Override
+            public void run() {
+                p.setGameMode(GameMode.ADVENTURE);
+                if (gameActive){
+                    p.teleport(loc);
+                }
+            }
+        };
+        deathtp.runTaskLater(plugin, 20);
+
         Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi kit spectate " + p.getName());
         p.setMetadata("br_player_state", new FixedMetadataValue(plugin, "ghost"));
-        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "team join monsters " + p.getName());
         p.sendTitle(ChatColor.RED + "Вы стали призраком", "Игроки и монстры не видят вас");
         p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 9999*20, 1, false, false, false));
         ghosts.add(p);
@@ -316,6 +336,9 @@ public class Arena {
         for (Player player : players){
             player.sendMessage(ChatColor.RED + "Игрок " + p.getName() + " умер");
         }
+        for (Player ghost : ghosts){
+            ghost.sendMessage(ChatColor.RED + "Игрок " + p.getName() + " умер");
+        }
 
         // ЕСЛИ ИГРОК БЫЛ ПОСЛЕДНИМ
         if (players.size() == 0){
@@ -325,24 +348,27 @@ public class Arena {
         }
 
         p.setMetadata("br_player_state", new FixedMetadataValue(plugin, "ghost"));
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "team join monsters " + p.getName());
         becameGhost(p);
     }
 
     // НАБЛЮДЕНИЕ ЗА ИГРОКАМИ
     public void spectate(Player p){
 
-        // ЕСЛИ ПОПАДАЕТ НА САМОГО СЕБЯ
-        if (players.get(spectatingCounters.get(p)).equals(p)){
-            spectatingCounters.put(p, spectatingCounters.get(p) + 1);
-        }
-
         // ЕСЛИ ВЫХОДИТ ЗА ГРАНИЦУ КОЛИЧЕСТВА ИГРОКОВ
         if (spectatingCounters.get(p) >= players.size()){
             spectatingCounters.put(p, 0);
         }
 
+        // ЕСЛИ ПОПАДАЕТ НА САМОГО СЕБЯ
+        if (players.get(spectatingCounters.get(p)).equals(p)){
+            spectatingCounters.put(p, spectatingCounters.get(p) + 1);
+        }
+
         p.teleport(players.get(spectatingCounters.get(p)));
         p.sendActionBar(ChatColor.GREEN + "Вы наблюдаете за игроком: " + ChatColor.YELLOW + players.get(spectatingCounters.get(p)).getName());
+        spectatingCounters.put(p, spectatingCounters.get(p) + 1);
+
     }
 
     // Старт игры
@@ -367,6 +393,9 @@ public class Arena {
                 if (currentTime == maxTime || players.size() == 0){
                     stopGame();
                     this.cancel();
+                    if (debug){
+                        System.out.println("Конец игры");
+                    }
                 }
             }
         };
@@ -388,10 +417,10 @@ public class Arena {
                 // Таймер эмбиента
                 if (time % backgroundMusicLenght == 0 || time == 0){
                     for (Player p : players){
-                        p.playSound(p, backgroundMusic, SoundCategory.AMBIENT, 100f, 1f);
+                        p.playSound(p, backgroundMusic, SoundCategory.AMBIENT, 20f, 1f);
                     }
                     for (Player ghost : ghosts){
-                        ghost.playSound(ghost, backgroundMusic, SoundCategory.AMBIENT, 100f, 1f);
+                        ghost.playSound(ghost, backgroundMusic, SoundCategory.AMBIENT, 20f, 1f);
                     }
                 }
                 time++;
@@ -413,22 +442,28 @@ public class Arena {
         // КИК ОСТАВШИХСЯ ИГРОКОВ
         if (players.size() > 0){
             int psize = players.size();
+            if (debug) {
+                System.out.println(players);
+            }
             for (int i = 0; i < psize; i++){
-                leave(players.get(0));
                 if (debug){
-                    System.out.println("Игрок кикнут");
+                    System.out.println("Игрок " + players.get(0).getName() + " кикнут");
                 }
+                leave(players.get(0));
             }
         }
 
         // КИК ОСТАВШИХСЯ НАБЛЮДАТЕЛЕЙ
         if (ghosts.size() > 0){
             int gsize = ghosts.size();
-            for (int i = 0; i < gsize; i++){
-                leave(ghosts.get(0));
-                if (debug){
-                    System.out.println("Призрак кикнут");
+            if (debug) {
+                System.out.println(ghosts);
+            }
+            for (int i = 0; i < gsize; i++) {
+                if (debug) {
+                    System.out.println("Призрак " + ghosts.get(0).getName() + " кикнут");
                 }
+                leave(ghosts.get(0));
             }
         }
 

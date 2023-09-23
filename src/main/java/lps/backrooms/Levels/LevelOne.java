@@ -29,7 +29,7 @@ public class LevelOne extends Arena{
     int methAmount;
     int genFillingAmount;
     int lightsOutDuration;
-    int generatorsRequired;
+    int generatorsRequiredMin;
     Integer[] lightsFillPos1;
     Integer[] lightsFillPos2;
 
@@ -39,6 +39,7 @@ public class LevelOne extends Arena{
     boolean isDark = false;
     boolean stopDarkness = false;
     boolean allGensUp = false;
+    int generatorsRequired;
 
     // Получеие локальных переменных
     public void initFromCfgLocal(int initialMonsterAmount, int whrenchAmount, int methAmount, int gasStationsAmount, int generatorsAmount, int genFillingAmount, int lightsOutDuration, int generatorsRequired, Integer[] lightsFillPos1, Integer[] lightsFillPos2){
@@ -48,7 +49,7 @@ public class LevelOne extends Arena{
         this.methAmount = methAmount;
         this.gasStationsAmount = gasStationsAmount;
         this.generatorsAmount = generatorsAmount;
-        this.generatorsRequired = generatorsRequired;
+        this.generatorsRequiredMin = generatorsRequired;
         this.genFillingAmount = genFillingAmount;
         this.lightsOutDuration = lightsOutDuration;
         this.lightsFillPos1 = lightsFillPos1;
@@ -60,33 +61,33 @@ public class LevelOne extends Arena{
     // Спавн вещей
     private void spawnThings(){
         // Гаечные ключи
-        for (int i = 0; i < whrenchAmount; i++){
+        for (int i = 0; i < (whrenchAmount + (players.size() * 2)); i++){
             Location loc = getRandomPos(24, 0, borders, -1);
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "clone 3 255 0 3 255 0 " + loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ());
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "setblock " + loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ() + " minecraft:air destroy");
         }
 
         // Таблетки
-        for (int i = 0; i < methAmount; i++){
+        for (int i = 0; i < (methAmount + (players.size() * 2)); i++){
             Location loc = getRandomPos(24, 0, borders, -1);
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "clone 4 255 0 4 255 0 " + loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ());
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "setblock " + loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ() + " minecraft:air destroy");
         }
 
         // СПАВН колонок
-        for (int I = 0; I < gasStationsAmount; I++){
+        for (int I = 0; I < (gasStationsAmount + (players.size() * 3)); I++){
             Location loc = getRandomPos(40, 1, borders, 1);
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "mm m spawn gasStation 1 " + "world" + "," + loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ() + ",0,0");
         }
 
         // СПАВН генераторов
-        for (int I = 0; I < generatorsAmount; I++){
+        for (int I = 0; I < (generatorsAmount + (players.size() * 2)); I++){
             Location loc = getRandomPos(40, 1, borders, 1);
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "mm m spawn generator 1 " + "world" + "," + loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ() + ",0,0");
         }
 
         // СПАВН МОНСТРОВ
-        for (int I = 0; I < players.size() + initialMonsterAmount; I++){
+        for (int I = 0; I < (initialMonsterAmount + (players.size() * 2)); I++){
             Location loc = getRandomPos(40, 1, borders, 1);
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "mm m spawn faceling 1 " + "world" + "," + loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ() + ",0,0");
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "team join monsters @e[type=minecraft:wither_skeleton]");
@@ -207,7 +208,7 @@ public class LevelOne extends Arena{
         p.getInventory().remove(Material.COAL);
         generator.setMetadata("time_left", new FixedMetadataValue(plugin, genFillingAmount));
         p.playSound(p.getLocation(), Sound.ENTITY_PIG_STEP, SoundCategory.MASTER, 1, 1);
-        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute at " + p.getName() + " run playsound minecraft:entity.bat.hurt master @a[distance=..20] ~ ~ ~ 100 1");
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute at " + p.getName() + " run playsound minecraft:entity.bat.hurt master @a[distance=..20] ~ ~ ~ 1 1");
 
         // Подсчёт уже заправленных | TODO можно оптимизировать через добавление при заправке и ресет при темноте
         int gensLeft = generatorsRequired;
@@ -221,8 +222,11 @@ public class LevelOne extends Arena{
             allGensUp = true;
             for (Player player : players){
                 player.sendMessage(ChatColor.GREEN + "Все генераторы заправлены! Найди лифт как можно скорее");
-                return;
             }
+            for (Player ghost : ghosts){
+                ghost.sendMessage(ChatColor.GREEN + "Все генераторы заправлены! Найди лифт как можно скорее");
+            }
+            return;
         }
 
         for (Player ghost : ghosts){
@@ -231,7 +235,6 @@ public class LevelOne extends Arena{
             ghost.sendMessage("");
             ghost.sendMessage("Игрок " + p.getName() + " заправил генератор! Осталось заправить ещё " + ChatColor.YELLOW + gensLeft + ChatColor.WHITE + " генераторов");
         }
-
         for (Player player : players){
             if (player.equals(p)){
                 p.sendMessage("");
@@ -274,6 +277,7 @@ public class LevelOne extends Arena{
     @Override
     public void startGame(){
 
+        generatorsRequired = generatorsRequiredMin + players.size();
         spawnThings();
         for (Player p : players){
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi usermeta " + p.getName() + " increment level1_games +1");
@@ -336,6 +340,10 @@ public class LevelOne extends Arena{
     }
 
     public void methUse(Player player){
+        if (!players.contains(player)){
+            return;
+        }
+
         player.playSound(player, Sound.ENTITY_PHANTOM_DEATH, SoundCategory.MASTER, 100, 1);
 
         // Забираем используемый предмет
@@ -358,14 +366,14 @@ public class LevelOne extends Arena{
         switch (chance){
             case (1):
                 // Очистка инвенторя
-                player.sendTitle("", "Gulp!", 10, 20, 10);
+                player.sendTitle(" ", "Gulp!", 10, 20, 10);
                 player.getInventory().clear();
                 Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "cmi kit level1_start " + player.getName());
                 break;
 
             case (2):
                 // Убийство игрока
-                player.sendTitle("", "Bad trip ☹", 10, 20, 10);
+                player.sendTitle(" ", "Bad trip ☹", 10, 20, 10);
                 player.addPotionEffect(new PotionEffect(PotionEffectType.CONFUSION, 4, 1));
                 Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute at " + player.getName() + " run playsound minecraft:entity.bat.death master @a[distance=..10] ~ ~ ~ 1 1");
                 BukkitRunnable pillDeath = new BukkitRunnable() {
@@ -381,25 +389,25 @@ public class LevelOne extends Arena{
 
             case (3):
                 // Отрыжка (ничего)
-                player.sendTitle("", "I found pills...", 10, 20, 10);
+                player.sendTitle(" ", "I found pills...", 10, 20, 10);
                 player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_BURP, SoundCategory.MASTER, 100, 1);
                 break;
 
             case (4):
                 // Телепорт в случайное место
-                player.sendTitle("", "Telepills", 10, 20, 10);
+                player.sendTitle(" ", "Telepills", 10, 20, 10);
                 player.teleport(getRandomPos(0, 0, borders, -1));
                 break;
 
             case (5):
                 // Ночное зрение
-                player.sendTitle("", "I can see forever!", 10, 20, 10);
+                player.sendTitle(" ", "I can see forever!", 10, 20, 10);
                 player.addPotionEffect(new PotionEffect(PotionEffectType.NIGHT_VISION, 9999*20, 1, false, false, true));
                 break;
 
             case (6):
                 // Свечение
-                player.sendTitle("", "Friends till the end!", 10, 20, 10);
+                player.sendTitle(" ", "Friends till the end!", 10, 20, 10);
                 for (Player p : players){
                     p.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 9999*20, 1, false, false, false));
                 }
@@ -407,21 +415,21 @@ public class LevelOne extends Arena{
 
             case (7):
                 // Обездвиживание
-                player.sendTitle("", "Paralysis", 10, 20, 10);
+                player.sendTitle(" ", "Paralysis", 10, 20, 10);
                 player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 10*20, 1, false, false, false));
                 player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 10*20, 99, false, false, false));
                 break;
 
             case (8):
                 // Скорость + неуязвимость
-                player.sendTitle("", "POWER PILL", 10, 20, 10);
+                player.sendTitle(" ", "POWER PILL", 10, 20, 10);
                 player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 10*20, 6, false, false, false));
                 player.addPotionEffect(new PotionEffect(PotionEffectType.DAMAGE_RESISTANCE, 10*20, 99, false, false, false));
                 break;
 
             case (9):
                 // Постоянное увелечение скорости
-                player.sendTitle("", "Speed up", 10, 20, 10);
+                player.sendTitle(" ", "Speed up", 10, 20, 10);
                 if (player.getPotionEffect(PotionEffectType.SPEED) == null){
                     player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 9999*20, 0, false, false, false));
                     break;
@@ -436,7 +444,7 @@ public class LevelOne extends Arena{
 
             case (10):
                 // Постоянное замедление
-                player.sendTitle("", "Speed down", 10, 20, 10);
+                player.sendTitle(" ", "Speed down", 10, 20, 10);
                 if (player.getPotionEffect(PotionEffectType.SLOW) == null){
                     player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 9999*20, 0, false, false, false));
                     break;
@@ -451,7 +459,7 @@ public class LevelOne extends Arena{
 
             case (11):
                 // Невозможность подбирать предметы
-                player.sendTitle("", "Somethin' wrong...", 10, 20, 10);
+                player.sendTitle(" ", "Somethin' wrong...", 10, 20, 10);
                 player.setMetadata("can_pickup_items", new FixedMetadataValue(plugin, false));
                 BukkitRunnable pickupDebuffCounter = new BukkitRunnable() {
 
@@ -476,10 +484,17 @@ public class LevelOne extends Arena{
     }
 
     public void wrenchUse(Player player){
+        if (!players.contains(player)){
+            return;
+        }
+
         player.playSound(player, Sound.ENTITY_PHANTOM_BITE, SoundCategory.MASTER, 100, 1);
 
         // забираем используемый предмет
         for (int i = 0; i < 35; i++){
+            if (player.getInventory().getItem(i) == null){
+                continue;
+            }
             if (!player.getInventory().getItem(i).getType().equals(Material.STICK)){
                 continue;
             }
@@ -496,7 +511,7 @@ public class LevelOne extends Arena{
         switch (chance){
             case (1):
                 // Подсвет генеров
-                player.sendTitle("", "Generators!", 10, 20, 10);
+                player.sendTitle(" ", "Generators!", 10, 20, 10);
                 for (Entity gen : generators){
                     LivingEntity tempGen = (LivingEntity) gen;
                     tempGen.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 15*20, 1, false, false, false));
@@ -505,7 +520,7 @@ public class LevelOne extends Arena{
 
             case (2):
                 // Спавн колонок
-                player.sendTitle("", "More fuel!", 10, 20, 10);
+                player.sendTitle(" ", "More fuel!", 10, 20, 10);
                 for (int I = 0; I < 3; I++){
                     Location loc = getRandomPos(40, 1, borders, 1);
                     Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "mm m spawn gasStation 1 " + "world" + "," + loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ() + ",0,0");
@@ -514,7 +529,7 @@ public class LevelOne extends Arena{
 
             case (3):
                 // Деспавн колонок
-                player.sendTitle("", "No fuel?", 10, 20, 10);
+                player.sendTitle(" ", "No fuel?", 10, 20, 10);
                 List<Entity> gasStations = (List<Entity>) Bukkit.getWorld("world").getNearbyEntities(boundingBox, (entity) -> entity.getType() == EntityType.CHICKEN);
                 if (gasStations.size() < 3){
                     break;
@@ -526,19 +541,19 @@ public class LevelOne extends Arena{
 
             case (4):
                 // Выключение всех генераторов
-                player.sendTitle("", "Darkness incoming...", 10, 20, 10);
+                player.sendTitle(" ", "Darkness incoming...", 10, 20, 10);
                 lightsOut();
                 break;
 
             case (5):
                 // Останока тьмы
-                player.sendTitle("", "The Light!", 10, 20, 10);
+                player.sendTitle(" ", "The Light!", 10, 20, 10);
                 stopDarkness = true;
                 break;
 
             case (6):
                 // Телепорт безликих в одно место
-                player.sendTitle("", "Facelings party", 10, 20, 10);
+                player.sendTitle(" ", "Facelings party", 10, 20, 10);
                 Location loc = getRandomPos(0, 1, borders, 1);
                 for (Entity faceling : facelings){
                     faceling.teleport(loc);
@@ -549,7 +564,7 @@ public class LevelOne extends Arena{
 
             case (7):
                 // Мега-заправка работающих генеров
-                player.sendTitle("", "POOOWEEER!", 10, 20, 10);
+                player.sendTitle(" ", "POOOWEEER!", 10, 20, 10);
                 for (Entity gen : generators){
                     if (gen.getMetadata("time_left").get(0).asInt() <= 0){
                         continue;
@@ -560,13 +575,13 @@ public class LevelOne extends Arena{
 
             case (8):
                 // Metal pipe
-                player.sendTitle("", "☠ BRUH ☠", 10, 20, 10);
+                player.sendTitle(" ", "☠ BRUH ☠", 10, 20, 10);
                 player.playSound(player, Sound.BLOCK_ANVIL_PLACE, SoundCategory.MASTER, 100, 1);
                 break;
 
             case (9):
                 // Теп безликой к игроку
-                player.sendTitle("", "Unintended consequences", 10, 20, 10);
+                player.sendTitle(" ", "Unintended consequences", 10, 20, 10);
                 Location location = player.getLocation();
                 BukkitRunnable facelingTeleportDelay = new BukkitRunnable() {
                     @Override
@@ -579,7 +594,7 @@ public class LevelOne extends Arena{
 
             case (10):
                 // Увеличение скорости безликих на 30 сек
-                player.sendTitle("", "They're fast!", 10, 20, 10);
+                player.sendTitle(" ", "They're fast!", 10, 20, 10);
                 for (Entity faceling : facelings){
                     LivingEntity faceling_living = (LivingEntity) faceling;
                     faceling_living.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 30*20, 1, false, false, false));
@@ -588,7 +603,7 @@ public class LevelOne extends Arena{
 
             case (11):
                 // Стан безликих на 15 сек
-                player.sendTitle("", "Bed time", 10, 20, 10);
+                player.sendTitle(" ", "Bed time", 10, 20, 10);
                 for (Entity faceling : facelings){
                     LivingEntity faceling_living = (LivingEntity) faceling;
                     faceling_living.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 15*20, 10, false, false, false));
