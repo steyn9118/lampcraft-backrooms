@@ -1,11 +1,11 @@
-package lps.backrooms.commands;
+package lampteam.backrooms.commands;
 
-import lps.backrooms.ArenaSelector;
-import lps.backrooms.Backrooms;
-import lps.backrooms.Levels.Arena;
-import lps.backrooms.Levels.LevelOne;
-import lps.backrooms.Levels.LevelZero;
-import lps.backrooms.Party;
+import lampteam.backrooms.ArenaSelector;
+import lampteam.backrooms.Levels.Arena;
+import lampteam.backrooms.Levels.LevelOne;
+import lampteam.backrooms.Levels.LevelZero;
+import lampteam.backrooms.Party;
+import lampteam.backrooms.Backrooms;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;

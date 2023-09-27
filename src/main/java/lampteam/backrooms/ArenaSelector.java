@@ -1,8 +1,8 @@
-package lps.backrooms;
+package lampteam.backrooms;
 
-import lps.backrooms.Levels.Arena;
-import lps.backrooms.Levels.LevelOne;
-import lps.backrooms.Levels.LevelZero;
+import lampteam.backrooms.Levels.Arena;
+import lampteam.backrooms.Levels.LevelOne;
+import lampteam.backrooms.Levels.LevelZero;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -25,14 +25,12 @@ public class ArenaSelector {
         Inventory menu;
 
         if (level == 1){
-            menu = Bukkit.createInventory(null, InventoryType.CHEST, "Уровень I. Выбор арены");
+            menu = Bukkit.createInventory(null, InventoryType.CHEST, "Уровень 1 - Выбор арены");
         } else if (level == 0){
-            menu = Bukkit.createInventory(null, InventoryType.CHEST, "Уровень O. Выбор арены");
+            menu = Bukkit.createInventory(null, InventoryType.CHEST, "Уровень 0 - Выбор арены");
         } else {
-            menu = Bukkit.createInventory(null, InventoryType.CHEST, "Уровень ?. Выбор арены");
+            menu = Bukkit.createInventory(null, InventoryType.CHEST, "Уровень ? - Что-то пошло не так...");
         }
-
-
 
         // Создание фона из панелей
         ItemStack filler = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
@@ -47,9 +45,11 @@ public class ArenaSelector {
         int place = 9;
         switch (level){
             case (0):
-                place = 10;
-            case (1):
                 place = 11;
+                break;
+            case (1):
+                place = 12;
+                break;
         }
         for (Arena arena : Backrooms.getPlugin().getArenas()){
 

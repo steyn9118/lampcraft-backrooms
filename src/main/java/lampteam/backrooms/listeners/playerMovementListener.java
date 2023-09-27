@@ -1,4 +1,4 @@
-package lps.backrooms.listeners;
+package lampteam.backrooms.listeners;
 
 import com.destroystokyo.paper.event.player.PlayerJumpEvent;
 import org.bukkit.entity.Player;

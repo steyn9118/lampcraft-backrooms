@@ -1,7 +1,7 @@
-package lps.backrooms.Levels;
+package lampteam.backrooms.Levels;
 
-import lps.backrooms.Backrooms;
-import lps.backrooms.Party;
+import lampteam.backrooms.Party;
+import lampteam.backrooms.Backrooms;
 import net.kyori.adventure.sound.SoundStop;
 import org.bukkit.*;
 import org.bukkit.entity.Player;

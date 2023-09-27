@@ -1,8 +1,8 @@
-package lps.backrooms.listeners;
+package lampteam.backrooms.listeners;
 
-import lps.backrooms.Backrooms;
-import lps.backrooms.Levels.Arena;
-import lps.backrooms.Party;
+import lampteam.backrooms.Levels.Arena;
+import lampteam.backrooms.Party;
+import lampteam.backrooms.Backrooms;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.entity.Player;

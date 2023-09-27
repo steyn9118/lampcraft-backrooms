@@ -1,10 +1,11 @@
-package lps.backrooms.listeners;
+package lampteam.backrooms.listeners;
 
-import lps.backrooms.Backrooms;
-import lps.backrooms.Levels.Arena;
-import lps.backrooms.Levels.LevelOne;
+import lampteam.backrooms.Backrooms;
+import lampteam.backrooms.Levels.Arena;
+import lampteam.backrooms.Levels.LevelOne;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Material;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
@@ -12,6 +13,8 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 
 public class EntityRelatedListeners implements Listener {
 
@@ -34,6 +37,7 @@ public class EntityRelatedListeners implements Listener {
 
             // Безликая
             if (damager.getType().equals(EntityType.WITHER_SKELETON)){
+                // TODO если под поверпилом
                 Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute at " + p.getName() + " run playsound minecraft:entity.phantom.flap master @a[distance=..20] ~ ~ ~ 100 1");
             }
 
@@ -44,7 +48,15 @@ public class EntityRelatedListeners implements Listener {
 
             // Монстр нулевого уронвя
             if (damager.getType().equals(EntityType.HUSK)){
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute at " + p.getName() + " run playsound minecraft:entity.ender_dragon.growl master @a[distance=..20] ~ ~ ~ 100 1");
+                // Проверка на тотем
+                if (p.getInventory().contains(Material.TOTEM_OF_UNDYING)){
+                    // TODO в будущем заменить на ресет стамины
+                    p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 15, 2));
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute at " + p.getName() + " run effect give @e[tag=monster,distance=..15] minecraft:slowness 15 9 false");
+                    return;
+                } else {
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute at " + p.getName() + " run playsound minecraft:entity.ender_dragon.growl master @a[distance=..20] ~ ~ ~ 100 1");
+                }
             }
             return;
         }

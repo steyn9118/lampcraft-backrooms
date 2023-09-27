@@ -1,4 +1,4 @@
-package lps.backrooms.blockfilling;
+package lampteam.backrooms.blockfilling;
 
 public class BlockFillingRequest {
 

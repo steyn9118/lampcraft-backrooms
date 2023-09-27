@@ -1,6 +1,6 @@
-package lps.backrooms.Levels;
+package lampteam.backrooms.Levels;
 
-import lps.backrooms.blockfilling.BlockFillingRequest;
+import lampteam.backrooms.blockfilling.BlockFillingRequest;
 import net.kyori.adventure.sound.SoundStop;
 import org.bukkit.*;
 import org.bukkit.entity.Entity;
@@ -375,7 +375,7 @@ public class LevelOne extends Arena{
                 // Убийство игрока
                 player.sendTitle(" ", "Bad trip ☹", 10, 20, 10);
                 player.addPotionEffect(new PotionEffect(PotionEffectType.CONFUSION, 4, 1));
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute at " + player.getName() + " run playsound minecraft:entity.bat.death master @a[distance=..10] ~ ~ ~ 1 1");
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute at " + player.getName() + " run playsound minecraft:entity.bat.death master @a[distance=..10] ~ ~ ~ 100 1");
                 BukkitRunnable pillDeath = new BukkitRunnable() {
                     @Override
                     public void run() {

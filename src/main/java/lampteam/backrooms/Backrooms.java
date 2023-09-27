@@ -1,16 +1,16 @@
-package lps.backrooms;
+package lampteam.backrooms;
 
-import lps.backrooms.Levels.Arena;
-import lps.backrooms.Levels.LevelOne;
-import lps.backrooms.Levels.LevelZero;
-import lps.backrooms.blockfilling.BlockFillingQueue;
-import lps.backrooms.commands.adminCommands;
-import lps.backrooms.commands.backroomsCommands;
-import lps.backrooms.commands.partyCommands;
-import lps.backrooms.listeners.EntityRelatedListeners;
-import lps.backrooms.listeners.ItemRelatedListeners;
-import lps.backrooms.listeners.playerJoinListener;
-import lps.backrooms.listeners.playerMovementListener;
+import lampteam.backrooms.Levels.Arena;
+import lampteam.backrooms.Levels.LevelOne;
+import lampteam.backrooms.Levels.LevelZero;
+import lampteam.backrooms.blockfilling.BlockFillingQueue;
+import lampteam.backrooms.commands.adminCommands;
+import lampteam.backrooms.commands.backroomsCommands;
+import lampteam.backrooms.commands.partyCommands;
+import lampteam.backrooms.listeners.EntityRelatedListeners;
+import lampteam.backrooms.listeners.ItemRelatedListeners;
+import lampteam.backrooms.listeners.playerJoinListener;
+import lampteam.backrooms.listeners.playerMovementListener;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Sound;
@@ -135,7 +135,7 @@ public final class Backrooms extends JavaPlugin {
                 int generatorsRequired = config.getInt("generatorsRequired");
                 Integer[] lightsFillPos1 = config.getIntegerList("lightsFillPos1").toArray(new Integer[3]);
                 Integer[] lightsFillPos2 = config.getIntegerList("lightsFillPos2").toArray(new Integer[3]);
-                arena.initFromCfgLocal(initialMonsterAmount,gasStationsAmount, generatorsAmount, whrenchAmount, methAmount, genFillingAmount, lightsOutDuration, generatorsRequired, lightsFillPos1, lightsFillPos2);
+                arena.initFromCfgLocal(initialMonsterAmount, whrenchAmount, methAmount, gasStationsAmount, generatorsAmount, genFillingAmount, lightsOutDuration, generatorsRequired, lightsFillPos1, lightsFillPos2);
 
                 arenas.add(arena);
             }
