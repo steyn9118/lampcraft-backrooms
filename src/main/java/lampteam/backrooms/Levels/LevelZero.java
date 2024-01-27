@@ -1,6 +1,6 @@
-package lps.backrooms.Levels;
+package lampteam.backrooms.Levels;
 
-import lps.backrooms.Backrooms;
+import lampteam.backrooms.Backrooms;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;

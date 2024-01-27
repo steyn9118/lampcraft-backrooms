@@ -1,8 +1,8 @@
-package lps.backrooms.commands;
+package lampteam.backrooms.commands;
 
-import lps.backrooms.Levels.Arena;
-import lps.backrooms.Backrooms;
-import lps.backrooms.Party;
+import lampteam.backrooms.Levels.Arena;
+import lampteam.backrooms.Backrooms;
+import lampteam.backrooms.Party;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;

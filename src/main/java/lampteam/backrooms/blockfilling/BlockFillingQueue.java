@@ -1,6 +1,6 @@
-package lps.backrooms.blockfilling;
+package lampteam.backrooms.blockfilling;
 
-import lps.backrooms.Backrooms;
+import lampteam.backrooms.Backrooms;
 import org.bukkit.Bukkit;
 import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.scheduler.BukkitRunnable;

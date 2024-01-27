@@ -1,7 +1,7 @@
-package lps.backrooms.commands;
+package lampteam.backrooms.commands;
 
-import lps.backrooms.Backrooms;
-import lps.backrooms.Party;
+import lampteam.backrooms.Party;
+import lampteam.backrooms.Backrooms;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.block.CommandBlock;

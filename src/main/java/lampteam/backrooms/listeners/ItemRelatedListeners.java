@@ -1,7 +1,7 @@
-package lps.backrooms.listeners;
+package lampteam.backrooms.listeners;
 
-import lps.backrooms.Backrooms;
-import lps.backrooms.Levels.Arena;
+import lampteam.backrooms.Backrooms;
+import lampteam.backrooms.Levels.Arena;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -82,7 +82,7 @@ public class ItemRelatedListeners implements Listener {
     // Закрытие меню
     @EventHandler
     public void menuCloseEvent(InventoryCloseEvent event){
-        if (event.getView().getTitle().equals("Уровень O. Выбор арены") && event.getPlayer().getMetadata("br_player_state").get(0).asString().equalsIgnoreCase("null")){
+        if (event.getView().getTitle().equals("Уровень 0 - Выбор арены") && event.getPlayer().getMetadata("br_player_state").get(0).asString().equalsIgnoreCase("null")){
             // Телепорт игрока обратно (из ямы), если была закрыта меню выбора арены первого уровня (без задержки - крашится)
             BukkitRunnable teleportDelay = new BukkitRunnable() {
                 @Override

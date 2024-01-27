@@ -1,6 +1,6 @@
 name: Backrooms
 version: '${project.version}'
-main: lps.backrooms.Backrooms
+main: lampteam.backrooms.Backrooms
 api-version: 1.16
 authors: [ steyn91 ]
 commands:
@@ -9,4 +9,4 @@ commands:
   party:
     description: invite friends
   bradmin:
-    description: backrooms goes brrrrr, but with perms
+    description: if something doesn't work
