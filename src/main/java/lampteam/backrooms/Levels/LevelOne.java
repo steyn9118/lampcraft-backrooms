@@ -115,7 +115,7 @@ public class LevelOne extends Arena{
             gen.setMetadata("time_left", new FixedMetadataValue(plugin, 0));
         }
 
-        // Эффект слепоты и звук для игроков
+        // Эффект слепоты и звук для игроков TODO призраки не слышат
         for (Player player : players){
             if (player.getPotionEffect(PotionEffectType.NIGHT_VISION) == null){
                 player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, lightsOutDuration*20, 1, false, false, false));

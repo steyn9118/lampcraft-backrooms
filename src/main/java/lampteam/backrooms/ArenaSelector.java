@@ -42,15 +42,11 @@ public class ArenaSelector {
         }
 
         // Создание иконок арен
-        int place = 9;
-        switch (level){
-            case (0):
-                place = 11;
-                break;
-            case (1):
-                place = 12;
-                break;
-        }
+        int place = switch (level) {
+            case (0) -> 11;
+            case (1) -> 12;
+            default -> 9;
+        };
         for (Arena arena : Backrooms.getPlugin().getArenas()){
 
             if (level == 1 && !(arena instanceof LevelOne)){
@@ -68,15 +64,13 @@ public class ArenaSelector {
             if (arena.isGameActive()){
                 lore.add(ChatColor.GRAY + "Статус: " + ChatColor.RED + "Идёт игра");
                 lore.add(ChatColor.GRAY + "Живых ироков: " + ChatColor.YELLOW + arena.getPlayers().size());
-                arenaDescription.setLore(lore);
-                arenaIcon.setItemMeta(arenaDescription);
             } else {
                 arenaIcon.setType(Material.LIME_STAINED_GLASS_PANE);
                 lore.add(ChatColor.GRAY + "Статус: " + ChatColor.GREEN + "Арена свободна");
                 lore.add(ChatColor.GRAY + "Максимум игроков: " + arena.getMaxPlayers());
-                arenaDescription.setLore(lore);
-                arenaIcon.setItemMeta(arenaDescription);
             }
+            arenaDescription.setLore(lore);
+            arenaIcon.setItemMeta(arenaDescription);
 
             menu.setItem(place, arenaIcon);
             place++;

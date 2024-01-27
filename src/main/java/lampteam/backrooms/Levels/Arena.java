@@ -31,7 +31,6 @@ public class Arena {
     int backgroundMusicLenght; // 210 на нулевом уровне
     boolean debug;
 
-
     // СЛУЖЕБНЫЕ ПЕРЕМЕННЫЕ
     protected final Backrooms plugin = Backrooms.getPlugin();
     public int currentTime;

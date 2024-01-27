@@ -27,6 +27,11 @@
       <option name="url" value="https://repo.simplix.dev/repository/simplixsoft-public/" />
     </remote-repository>
     <remote-repository>
+      <option name="id" value="auxilor" />
+      <option name="name" value="auxilor" />
+      <option name="url" value="https://repo.auxilor.io/repository/maven-public/" />
+    </remote-repository>
+    <remote-repository>
       <option name="id" value="papermc-repo" />
       <option name="name" value="papermc-repo" />
       <option name="url" value="https://repo.papermc.io/repository/maven-public/" />

@@ -25,10 +25,12 @@ public class playerJoinListener implements Listener {
         p.setMetadata("br_arena", new FixedMetadataValue(plugin, "null"));
         p.setMetadata("br_player_state", new FixedMetadataValue(plugin, "null"));
         p.setMetadata("can_pickup_items", new FixedMetadataValue(plugin, true));
-        TextComponent clikable_invite = new TextComponent("Если у вас не загрузился ресурспак - нажмите на это сообщение или напишите /pack");
+        TextComponent clikable_invite = new TextComponent("⚠ Если у вас не загрузился ресурспак - нажмите на это сообщение или напишите /pack");
         clikable_invite.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/pack"));
         clikable_invite.setColor(net.md_5.bungee.api.ChatColor.YELLOW);
+        p.sendMessage("");
         p.spigot().sendMessage(clikable_invite);
+        p.sendMessage("");
     }
 
     @EventHandler

@@ -3,6 +3,7 @@ package lampteam.backrooms.listeners;
 import lampteam.backrooms.Backrooms;
 import lampteam.backrooms.Levels.Arena;
 import lampteam.backrooms.Levels.LevelOne;
+import lampteam.backrooms.Utils;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -16,6 +17,7 @@ import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
+@SuppressWarnings("DataFlowIssue")
 public class EntityRelatedListeners implements Listener {
 
     // Предотвращает нанесение урона всем неживым игрокам
@@ -34,6 +36,8 @@ public class EntityRelatedListeners implements Listener {
             // Проигрывание звуков смерти
             Player p = (Player) event.getEntity();
             Entity damager = event.getDamager();
+
+            p.teleport(Utils.faceLocation(p, damager.getLocation()));
 
             // Безликая
             if (damager.getType().equals(EntityType.WITHER_SKELETON)){
